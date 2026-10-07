@@ -693,7 +693,7 @@ document.getElementById("onboardPasteBtn").onclick=()=>{
     return;
   }
   completeOnboarding();
-  showJobModal(null,url);
+  startJobFromUrl(url);
 };
 
 document.getElementById("onboardManualBtn").onclick=()=>{
@@ -733,16 +733,267 @@ function hideJobModal(){
   editingJobId=null;
 }
 
+function normalizeJobUrl(raw){
+  const value=String(raw||"").trim();
+  if(!value) return "";
+  try{
+    return new URL(value).href;
+  }catch{
+    try{
+      return new URL("https://"+value).href;
+    }catch{
+      return "";
+    }
+  }
+}
+
+function titleCaseWords(value){
+  return String(value||"")
+    .replace(/[-_]+/g," ")
+    .replace(/\b\w/g,ch=>ch.toUpperCase())
+    .replace(/\s+/g," ")
+    .trim();
+}
+
 function inferSource(url){
   try{
     const host=new URL(url).hostname.toLowerCase();
     if(host.includes("linkedin")) return "LinkedIn";
     if(host.includes("joinhandshake") || host.includes("handshake")) return "Handshake";
     if(host.includes("indeed")) return "Indeed";
+    if(host.includes("greenhouse")) return "Greenhouse";
+    if(host.includes("lever.co")) return "Lever";
+    if(host.includes("ashbyhq")) return "Ashby";
+    if(host.includes("myworkdayjobs")) return "Workday";
+    if(host.includes("smartrecruiters")) return "SmartRecruiters";
     return "Company site";
   }catch{
     return "";
   }
+}
+
+function inferCompanyFromUrl(url){
+  try{
+    const u=new URL(url);
+    const host=u.hostname.toLowerCase();
+    const parts=u.pathname.split("/").filter(Boolean);
+
+    if(host.includes("lever.co") && parts[0]) return titleCaseWords(parts[0]);
+    if(host.includes("ashbyhq.com") && parts[0]) return titleCaseWords(parts[0]);
+    if(host.includes("greenhouse.io") && parts[0] && !["jobs","embed"].includes(parts[0].toLowerCase())) return titleCaseWords(parts[0]);
+    if(host.includes("smartrecruiters.com") && parts[0]) return titleCaseWords(parts[0]);
+
+    if(host.includes("myworkdayjobs.com")){
+      const first=host.split(".")[0];
+      const cleaned=first.replace(/wd\d+$/,"").replace(/careers?$/,"");
+      if(cleaned) return titleCaseWords(cleaned);
+    }
+
+    if(host.includes("linkedin.com")){
+      const match=u.pathname.match(/\/jobs\/view\/([^/?#]+)/i);
+      if(match){
+        const slug=decodeURIComponent(match[1]).replace(/-\d+$/,"");
+        const atIndex=slug.lastIndexOf("-at-");
+        if(atIndex>0) return titleCaseWords(slug.slice(atIndex+4));
+      }
+      return "";
+    }
+
+    const labels=host.split(".").filter(Boolean);
+    const ignored=new Set(["www","jobs","job","careers","career","apply","boards","board"]);
+    const candidate=labels.find(x=>!ignored.has(x) && !["com","org","net","io","co","ai"].includes(x));
+    return candidate ? titleCaseWords(candidate) : "";
+  }catch{
+    return "";
+  }
+}
+
+function inferRoleFromUrl(url){
+  try{
+    const u=new URL(url);
+    const host=u.hostname.toLowerCase();
+    const parts=u.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+
+    if(host.includes("linkedin.com")){
+      const match=u.pathname.match(/\/jobs\/view\/([^/?#]+)/i);
+      if(match){
+        let slug=decodeURIComponent(match[1]).replace(/-\d+$/,"");
+        const atIndex=slug.lastIndexOf("-at-");
+        if(atIndex>0) slug=slug.slice(0,atIndex);
+        return titleCaseWords(slug);
+      }
+    }
+
+    // Use a descriptive slug when it is clearly more than a numeric job id.
+    const candidate=[...parts].reverse().find(part=>{
+      const cleaned=part.replace(/\.html?$/i,"");
+      return cleaned.length>6 && !/^\d+$/.test(cleaned) && /[-_]/.test(cleaned);
+    });
+
+    if(candidate){
+      return titleCaseWords(candidate.replace(/\.html?$/i,"").replace(/^job[-_]?/i,""));
+    }
+  }catch{}
+  return "";
+}
+
+function inferFunctionFromRole(role){
+  const r=String(role||"").toLowerCase();
+  if(/product manager|product management|product operations|product strategy|product marketing/.test(r)) return "Product";
+  if(/investment|research analyst|finance|financial|equity|credit|asset management/.test(r)) return "Finance";
+  if(/software|engineer|developer|data scientist|machine learning|technical/.test(r)) return "Tech";
+  if(/consult|strategy consultant/.test(r)) return "Consulting";
+  if(/operations|strategy & operations|business operations/.test(r)) return "Operations";
+  return "Other";
+}
+
+function flattenJobPosting(value){
+  if(!value) return null;
+  if(Array.isArray(value)){
+    for(const item of value){
+      const found=flattenJobPosting(item);
+      if(found) return found;
+    }
+    return null;
+  }
+  if(typeof value==="object"){
+    const type=value["@type"];
+    if(type==="JobPosting" || (Array.isArray(type) && type.includes("JobPosting"))) return value;
+    if(value["@graph"]){
+      const found=flattenJobPosting(value["@graph"]);
+      if(found) return found;
+    }
+  }
+  return null;
+}
+
+function locationFromPosting(posting){
+  const loc=Array.isArray(posting?.jobLocation) ? posting.jobLocation[0] : posting?.jobLocation;
+  const address=loc?.address || loc;
+  const pieces=[address?.addressLocality,address?.addressRegion].filter(Boolean);
+  return pieces.join(", ");
+}
+
+function compensationFromPosting(posting){
+  const base=posting?.baseSalary;
+  if(!base) return "";
+  if(typeof base==="string") return base;
+
+  const currency=base.currency || "";
+  const val=base.value || base;
+  const unit=val.unitText ? `/${String(val.unitText).toLowerCase()}` : "";
+  const min=val.minValue;
+  const max=val.maxValue;
+  const single=val.value;
+
+  const fmt=n=>Number(n).toLocaleString("en-US",{maximumFractionDigits:0});
+  if(min!=null && max!=null) return `${currency} ${fmt(min)}–${fmt(max)}${unit}`.trim();
+  if(single!=null) return `${currency} ${fmt(single)}${unit}`.trim();
+  return "";
+}
+
+function deadlineFromPosting(posting){
+  const raw=posting?.validThrough;
+  if(!raw) return "";
+  const d=new Date(raw);
+  if(Number.isNaN(d.getTime())) return String(raw);
+  return d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+}
+
+async function tryReadJobPosting(url){
+  try{
+    const response=await fetch(url,{mode:"cors",credentials:"omit"});
+    if(!response.ok) return null;
+
+    const html=await response.text();
+    const doc=new DOMParser().parseFromString(html,"text/html");
+    let posting=null;
+
+    for(const script of doc.querySelectorAll('script[type="application/ld+json"]')){
+      try{
+        const json=JSON.parse(script.textContent);
+        posting=flattenJobPosting(json);
+        if(posting) break;
+      }catch{}
+    }
+
+    const metaTitle=
+      doc.querySelector('meta[property="og:title"]')?.content ||
+      doc.querySelector('meta[name="twitter:title"]')?.content ||
+      doc.title ||
+      "";
+
+    return {
+      company: posting?.hiringOrganization?.name || "",
+      role: posting?.title || metaTitle.replace(/\s+[|–-]\s+.*$/,"").trim(),
+      city: locationFromPosting(posting),
+      industry: typeof posting?.industry==="string" ? posting.industry : "",
+      comp: compensationFromPosting(posting),
+      deadline: deadlineFromPosting(posting),
+      source: inferSource(url)
+    };
+  }catch{
+    return null;
+  }
+}
+
+function applyPrefill(data){
+  if(!data) return;
+
+  const mapping={
+    company:"fCompany",
+    role:"fRole",
+    city:"fCity",
+    industry:"fIndustry",
+    comp:"fComp",
+    deadline:"fDeadline",
+    source:"fSource"
+  };
+
+  Object.entries(mapping).forEach(([key,id])=>{
+    if(data[key] && !document.getElementById(id).value.trim()){
+      document.getElementById(id).value=data[key];
+    }
+  });
+
+  const role=document.getElementById("fRole").value.trim();
+  if(role){
+    document.getElementById("fFunction").value=inferFunctionFromRole(role);
+  }
+}
+
+async function startJobFromUrl(rawUrl){
+  const url=normalizeJobUrl(rawUrl);
+  if(!url){
+    alert("That does not look like a valid job link.");
+    return;
+  }
+
+  const heuristic={
+    company:inferCompanyFromUrl(url),
+    role:inferRoleFromUrl(url),
+    source:inferSource(url)
+  };
+
+  showJobModal(null,url);
+  applyPrefill(heuristic);
+
+  const title=document.getElementById("jobModalTitle");
+  const originalTitle=title.textContent;
+  title.textContent="Reading job posting…";
+
+  const fetched=await tryReadJobPosting(url);
+  applyPrefill(fetched);
+
+  title.textContent=originalTitle;
+
+  const filled=["fCompany","fRole","fCity","fIndustry","fComp","fDeadline"]
+    .filter(id=>document.getElementById(id).value.trim()).length;
+
+  toast(filled>2
+    ? "Filled in what I could find — review before saving"
+    : "I pulled what I could from the link — fill in the rest"
+  );
 }
 
 document.getElementById("addBtn").onclick=()=>showJobModal();
@@ -756,7 +1007,7 @@ document.getElementById("cancelJobModal").onclick=hideJobModal;
 document.getElementById("pasteBtn").onclick=()=>{
   const url=prompt("Paste the job posting URL:");
   if(!url) return;
-  showJobModal(null,url.trim());
+  startJobFromUrl(url);
 };
 
 document.getElementById("saveJob").onclick=()=>{
