@@ -636,10 +636,17 @@ function renderJobs(){
 
 function formatContact(contact){
   const bits=[];
-  if(contact.role) bits.push(escapeHTML(contact.role));
-  if(contact.last) bits.push(`last contacted ${escapeHTML(contact.last)}`);
-  if(contact.followUp) bits.push(`follow up ${escapeHTML(contact.followUp)}`);
+  if(contact.role) bits.push(contact.role);
+  if(contact.last) bits.push(`last contacted ${contact.last}`);
+  if(contact.followUp) bits.push(`follow up ${contact.followUp}`);
   return bits.join(" · ") || "No notes yet";
+}
+
+function formatTimelineDate(date){
+  if(!date) return "";
+  const d=new Date(date+"T00:00:00");
+  if(Number.isNaN(d.getTime())) return date;
+  return d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
 }
 
 function openJob(id){
@@ -663,23 +670,53 @@ function openJob(id){
     <div class="list-item">
       <strong>${escapeHTML(j.next)}</strong>
       ${escapeHTML(j.nextDetail)}
+      ${j.nextDue ? `<div class="next-action-due">Due ${escapeHTML(formatTimelineDate(j.nextDue))}</div>` : ""}
     </div>
   `;
 
   document.getElementById("detailContacts").innerHTML=j.contacts.length
-    ? j.contacts.map(c=>{
-        const url=safeURL(c.link);
+    ? j.contacts.map((contact,index)=>{
+        const url=safeURL(contact.link);
         return `<div class="list-item">
-          <strong>${escapeHTML(c.name)}</strong>
-          ${escapeHTML(formatContact(c)).replace(/&amp;middot;/g,"·")}
-          ${url ? `<div class="small"><a href="${url}" target="_blank" rel="noopener">Open contact ↗</a></div>` : ""}
+          <strong>${escapeHTML(contact.name)}</strong>
+          ${escapeHTML(formatContact(contact))}
+          <div class="contact-actions">
+            ${url ? `<a class="text-button" href="${url}" target="_blank" rel="noopener">Open contact ↗</a>` : ""}
+            <button class="text-button" data-delete-contact="${index}">Remove</button>
+          </div>
         </div>`;
       }).join("")
     : "<div class='list-item'>No contacts yet. Add someone you may want to reach out to.</div>";
 
-  document.getElementById("detailTimeline").innerHTML=j.timeline.map(t=>`
-    <div class="list-item"><strong>${escapeHTML(t[0])}</strong>${escapeHTML(t[1])}</div>
-  `).join("");
+  document.querySelectorAll("[data-delete-contact]").forEach(btn=>{
+    btn.onclick=()=>{
+      const idx=Number(btn.dataset.deleteContact);
+      const removed=j.contacts[idx];
+      j.contacts.splice(idx,1);
+      j.timeline.unshift(normalizeTimelineEntry({
+        title:"Contact removed",
+        detail:removed?.name || "Contact",
+        date:new Date().toISOString().slice(0,10),
+        type:"Networking"
+      }));
+      persist();
+      updateAll();
+      openJob(j.id);
+      toast("Contact removed");
+    };
+  });
+
+  document.getElementById("detailTimeline").innerHTML=j.timeline.length
+    ? j.timeline.map(t=>`
+      <div class="list-item">
+        <strong>${escapeHTML(t.title)}</strong>
+        ${escapeHTML(t.detail)}
+        <div class="timeline-meta">
+          ${t.type ? escapeHTML(t.type) : "Activity"}${t.date ? ` · ${escapeHTML(formatTimelineDate(t.date))}` : ""}
+        </div>
+      </div>
+    `).join("")
+    : "<div class='list-item'>No timeline activity yet.</div>";
 
   setLinkCard("detailJobLink","detailJobLinkText",j.jobUrl,"Open original posting ↗","No job link added");
   setLinkCard("detailResumeLink","detailResumeLinkText",j.resumeUrl,"Open resume / document ↗","No resume link added");
@@ -739,7 +776,12 @@ document.getElementById("detailStatusSelect").onchange=e=>{
   const old=j.status;
   j.status=e.target.value;
   j.attention=["Saved","Applying","Interviewing","Offer"].includes(j.status);
-  j.timeline.unshift(["Status updated",`${old} → ${j.status}`]);
+  j.timeline.unshift(normalizeTimelineEntry({
+    title:"Status updated",
+    detail:`${old} → ${j.status}`,
+    date:new Date().toISOString().slice(0,10),
+    type:"Application"
+  }));
   persist();
   updateAll();
   openJob(j.id);
@@ -793,6 +835,8 @@ function showJobModal(job=null,initialUrl=""){
   document.getElementById("fComp").value=job?.comp || "";
   document.getElementById("fSource").value=job?.source || inferSource(initialUrl);
   document.getElementById("fNext").value=job?.next || "";
+  document.getElementById("fNextDetail").value=job?.nextDetail || "";
+  document.getElementById("fNextDue").value=job?.nextDue || "";
   document.getElementById("fJobUrl").value=job?.jobUrl || initialUrl || "";
   document.getElementById("fResumeUrl").value=job?.resumeUrl || "";
   jobBackdrop.classList.add("show");
@@ -853,12 +897,19 @@ document.getElementById("saveJob").onclick=()=>{
       comp:document.getElementById("fComp").value.trim() || "Not added",
       source:document.getElementById("fSource").value.trim() || "Manual",
       next:document.getElementById("fNext").value.trim() || "Review role",
+      nextDetail:document.getElementById("fNextDetail").value.trim() || "Add the next step you want to take.",
+      nextDue:document.getElementById("fNextDue").value,
       jobUrl:document.getElementById("fJobUrl").value.trim(),
       resumeUrl:document.getElementById("fResumeUrl").value.trim()
     });
 
     j.attention=["Saved","Applying","Interviewing","Offer"].includes(j.status);
-    j.timeline.unshift(["Job updated","Role details edited."]);
+    j.timeline.unshift(normalizeTimelineEntry({
+      title:"Job updated",
+      detail:"Role details edited.",
+      date:new Date().toISOString().slice(0,10),
+      type:"Custom"
+    }));
     persist();
     hideJobModal();
     updateAll();
@@ -881,11 +932,17 @@ document.getElementById("saveJob").onclick=()=>{
     comp:document.getElementById("fComp").value.trim() || "Not added",
     attention:["Saved","Applying","Interviewing","Offer"].includes(document.getElementById("fStatus").value),
     next:document.getElementById("fNext").value.trim() || "Review role",
-    nextDetail:"Open the role and add whatever context you need.",
+    nextDetail:document.getElementById("fNextDetail").value.trim() || "Open the role and add whatever context you need.",
+    nextDue:document.getElementById("fNextDue").value,
     jobUrl:document.getElementById("fJobUrl").value.trim(),
     resumeUrl:document.getElementById("fResumeUrl").value.trim(),
     contacts:[],
-    timeline:[["Saved role","Added to dashboard just now."]]
+    timeline:[{
+      title:"Saved role",
+      detail:"Added to dashboard just now.",
+      date:new Date().toISOString().slice(0,10),
+      type:"Application"
+    }]
   });
 
   jobs.unshift(j);
@@ -924,7 +981,12 @@ document.getElementById("saveContact").onclick=()=>{
     followUp:document.getElementById("cFollow").value
   });
 
-  j.timeline.unshift(["Contact added",name]);
+  j.timeline.unshift(normalizeTimelineEntry({
+    title:"Contact added",
+    detail:name,
+    date:new Date().toISOString().slice(0,10),
+    type:"Networking"
+  }));
   if(document.getElementById("cFollow").value) j.attention=true;
 
   persist();
@@ -932,6 +994,96 @@ document.getElementById("saveContact").onclick=()=>{
   updateAll();
   openJob(j.id);
   toast("Contact added");
+};
+
+const timelineBackdrop=document.getElementById("timelineModalBackdrop");
+let timelineMode="activity";
+
+function showTimelineModal(mode="activity"){
+  const j=jobs.find(x=>x.id===activeJobId);
+  if(!j) return;
+
+  timelineMode=mode;
+  document.getElementById("timelineModalTitle").textContent=mode==="next" ? "Update next action" : "Add activity";
+  document.getElementById("tType").value=mode==="next" ? "Custom" : "Application";
+  document.getElementById("tDate").value=new Date().toISOString().slice(0,10);
+  document.getElementById("tTitle").value=mode==="next" ? j.next : "";
+  document.getElementById("tDetail").value=mode==="next" ? j.nextDetail : "";
+  document.getElementById("tSetNext").checked=mode==="next";
+  document.getElementById("tNextDue").value=mode==="next" ? (j.nextDue || "") : "";
+  document.getElementById("saveTimeline").textContent=mode==="next" ? "Save next action" : "Add to timeline";
+  timelineBackdrop.classList.add("show");
+}
+
+document.getElementById("addTimelineBtn").onclick=()=>showTimelineModal("activity");
+document.getElementById("editNextActionBtn").onclick=()=>showTimelineModal("next");
+document.getElementById("cancelTimelineModal").onclick=()=>timelineBackdrop.classList.remove("show");
+
+document.getElementById("saveTimeline").onclick=()=>{
+  const j=jobs.find(x=>x.id===activeJobId);
+  if(!j) return;
+
+  const title=document.getElementById("tTitle").value.trim();
+  const detail=document.getElementById("tDetail").value.trim();
+  const date=document.getElementById("tDate").value;
+  const type=document.getElementById("tType").value;
+  const setNext=document.getElementById("tSetNext").checked || timelineMode==="next";
+
+  if(!title){
+    alert("Add a title first.");
+    return;
+  }
+
+  j.timeline.unshift(normalizeTimelineEntry({
+    title,
+    detail,
+    date,
+    type
+  }));
+
+  if(setNext){
+    j.next=title;
+    j.nextDetail=detail || "Next step added from the timeline.";
+    j.nextDue=document.getElementById("tNextDue").value;
+    j.attention=true;
+  }
+
+  persist();
+  timelineBackdrop.classList.remove("show");
+  updateAll();
+  openJob(j.id);
+  toast(setNext ? "Timeline and next action updated" : "Timeline updated");
+};
+
+document.getElementById("apolloConnectionsBtn").onclick=()=>{
+  const j=jobs.find(x=>x.id===activeJobId);
+  if(!j) return;
+
+  window.open("https://app.apollo.io/#/people","_blank","noopener");
+  if(navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(j.company)
+      .then(()=>toast(`${j.company} copied for Apollo search`))
+      .catch(()=>toast("Apollo opened"));
+  }else{
+    toast("Apollo opened");
+  }
+};
+
+document.getElementById("chatgptConnectionsBtn").onclick=()=>{
+  const j=jobs.find(x=>x.id===activeJobId);
+  if(!j) return;
+
+  const promptText=`I am considering/applying to the ${j.role} role at ${j.company} in ${j.city}. Help me identify relevant people I could reach out to about this role. Prioritize people likely connected to the team or hiring process, product/business leaders relevant to the role, early-talent or recruiting contacts, and people with plausible shared background. For each person, give me their current title, why they are relevant, and a public profile/link when available. Do not guess private contact information or invent people. Also suggest the 3 best people to contact first and why.`;
+
+  window.open("https://chatgpt.com/","_blank","noopener");
+
+  if(navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(promptText)
+      .then(()=>toast("ChatGPT prompt copied — paste it into the new chat"))
+      .catch(()=>window.prompt("Copy this prompt into ChatGPT:",promptText));
+  }else{
+    window.prompt("Copy this prompt into ChatGPT:",promptText);
+  }
 };
 
 const shortcutBackdrop=document.getElementById("shortcutModalBackdrop");
