@@ -337,3 +337,42 @@ a{color:inherit}
   line-height:1.55;
 }
 .empty-jobs .actions{justify-content:center}
+
+/* In-app confirmation modal */
+.confirm-modal{
+  width:min(460px,100%);
+  text-align:center;
+  padding:30px;
+}
+.confirm-icon{
+  width:44px;
+  height:44px;
+  margin:0 auto 14px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:var(--rose2);
+  color:var(--rose);
+  font-weight:900;
+  font-size:20px;
+}
+.confirm-modal h3{
+  font-size:27px;
+  margin-bottom:8px;
+}
+.confirm-modal p{
+  line-height:1.5;
+  max-width:360px;
+  margin:0 auto 22px;
+}
+.confirm-actions{
+  justify-content:center;
+}
+.danger-confirm{
+  background:#7b342f;
+  color:#fff;
+  border-color:#7b342f;
+}
+.danger-confirm:hover{
+  background:#692b27;
+}
