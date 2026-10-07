@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Job Search Command Center</title>
-<link rel="stylesheet" href="styles.css?v=20261007-1828">
+<link rel="stylesheet" href="styles.css?v=20261007-1845">
 </head>
 <body>
 <div class="app">
@@ -255,6 +255,33 @@
   </main>
 </div>
 
+
+<div class="modal-backdrop onboarding-backdrop" id="onboardingBackdrop">
+  <div class="modal onboarding-modal">
+    <div class="eyebrow">Welcome</div>
+    <h3>Start with one job.</h3>
+    <p>You found the opportunity somewhere else. Bring it here and keep everything that happens next in one place.</p>
+
+    <div class="onboarding-input-wrap">
+      <label for="onboardJobUrl">Paste your first job link</label>
+      <input id="onboardJobUrl" placeholder="LinkedIn, Handshake, company careers page...">
+    </div>
+
+    <button class="btn primary onboarding-primary" id="onboardPasteBtn">Start tracking this job</button>
+
+    <div class="onboarding-divider"><span>or</span></div>
+
+    <div class="onboarding-secondary-actions">
+      <button class="btn" id="onboardManualBtn">Add a job manually</button>
+      <button class="text-button onboarding-skip" id="onboardSkipBtn">Explore the blank dashboard</button>
+    </div>
+
+    <div class="onboarding-note">
+      Your jobs are saved in this browser for now. Other people using this link get their own blank workspace.
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="jobModalBackdrop">
   <div class="modal">
     <h3 id="jobModalTitle">Add a job</h3>
@@ -380,6 +407,6 @@
   </div>
 </div>
 
-<script src="app.js?v=20261007-1828"></script>
+<script src="app.js?v=20261007-1845"></script>
 </body>
 </html>
