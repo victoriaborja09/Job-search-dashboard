@@ -1,185 +1,9 @@
 const STORAGE_KEY = "job-search-dashboard-v2";
 const SHORTCUTS_KEY = "job-search-dashboard-shortcuts-v1";
 const OFFERS_KEY = "job-search-dashboard-offers-v1";
+const ONBOARDING_KEY = "job-search-dashboard-onboarding-v1";
 
-const DEFAULT_JOBS = [
-  {
-    id:"rhood",
-    company:"Robinhood",
-    role:"Associate Product Manager",
-    city:"New York",
-    industry:"Fintech",
-    function:"Product",
-    status:"Saved",
-    saved:"4 days ago",
-    deadline:"In 3 days",
-    source:"LinkedIn",
-    comp:"$120K–$140K",
-    attention:true,
-    next:"Submit application",
-    nextDetail:"Tailor resume and apply before the deadline.",
-    jobUrl:"https://careers.robinhood.com/",
-    resumeUrl:"",
-    notes:"",
-    contacts:[
-      {name:"Sabrina Ali",role:"Product leader",link:"",last:"2026-09-30",followUp:"2026-10-07"},
-      {name:"Andrew Gonzalez",role:"Early Talent",link:"",last:"",followUp:""}
-    ],
-    timeline:[
-      ["Saved role","Found on LinkedIn."],
-      ["Resume updated","Product-focused version drafted."],
-      ["Next","Submit before the deadline."]
-    ]
-  },
-  {
-    id:"roblox",
-    company:"Roblox",
-    role:"APM Early Career",
-    city:"San Francisco",
-    industry:"Consumer Tech",
-    function:"Product",
-    status:"Saved",
-    saved:"9 days ago",
-    deadline:"In 11 days",
-    source:"Company site",
-    comp:"$135K–$155K",
-    attention:true,
-    next:"Decide whether to prioritize",
-    nextDetail:"This role has been sitting in Saved for over a week.",
-    jobUrl:"https://careers.roblox.com/",
-    resumeUrl:"",
-    notes:"",
-    contacts:[],
-    timeline:[
-      ["Saved role","Added from company careers page."],
-      ["No movement","Flagged as stale."]
-    ]
-  },
-  {
-    id:"google",
-    company:"Google",
-    role:"Associate Product Marketing Manager",
-    city:"New York",
-    industry:"Consumer Tech",
-    function:"Product",
-    status:"Applying",
-    saved:"2 days ago",
-    deadline:"In 15 days",
-    source:"Handshake",
-    comp:"$126K–$180K",
-    attention:false,
-    next:"Finalize application",
-    nextDetail:"Resume is tailored; submission is not complete.",
-    jobUrl:"https://careers.google.com/",
-    resumeUrl:"",
-    notes:"",
-    contacts:[{name:"Barnard alumna",role:"Potential intro",link:"",last:"",followUp:""}],
-    timeline:[
-      ["Saved role","Pulled from Handshake."],
-      ["Draft started","Application is partly complete."]
-    ]
-  },
-  {
-    id:"blackrock",
-    company:"BlackRock",
-    role:"Investment Research Analyst",
-    city:"New York",
-    industry:"Asset Management",
-    function:"Finance",
-    status:"Applied",
-    saved:"12 days ago",
-    deadline:"Submitted",
-    source:"Company site",
-    comp:"$95K–$123K",
-    attention:false,
-    next:"Wait for update",
-    nextDetail:"No follow-up needed yet.",
-    jobUrl:"https://careers.blackrock.com/",
-    resumeUrl:"",
-    notes:"",
-    contacts:[{name:"Current employee",role:"Networking call completed",link:"",last:"",followUp:""}],
-    timeline:[
-      ["Saved","Added from careers site."],
-      ["Applied","Submitted 12 days ago."]
-    ]
-  },
-  {
-    id:"mercor",
-    company:"Mercor",
-    role:"Operations / Product Generalist",
-    city:"San Francisco",
-    industry:"AI",
-    function:"Product",
-    status:"Applied",
-    saved:"4 days ago",
-    deadline:"Rolling",
-    source:"Referral",
-    comp:"Not listed",
-    attention:false,
-    next:"Monitor",
-    nextDetail:"Consider follow-up next week if there is no response.",
-    jobUrl:"https://mercor.com/",
-    resumeUrl:"",
-    notes:"",
-    contacts:[{name:"Point72 alum",role:"Potential shared background",link:"",last:"",followUp:""}],
-    timeline:[
-      ["Saved","Added from company page."],
-      ["Applied","Submitted four days ago."]
-    ]
-  },
-  {
-    id:"capital",
-    company:"Capital One",
-    role:"Business Analyst",
-    city:"New York",
-    industry:"Fintech",
-    function:"Finance",
-    status:"Interviewing",
-    saved:"20 days ago",
-    deadline:"Round 1 next Tue",
-    source:"LinkedIn",
-    comp:"$110K–$125K",
-    attention:true,
-    next:"Prep interview",
-    nextDetail:"Behavioral and case prep due before Tuesday.",
-    jobUrl:"https://www.capitalonecareers.com/",
-    resumeUrl:"",
-    notes:"",
-    contacts:[
-      {name:"Recruiter",role:"Interview scheduled",link:"",last:"",followUp:""},
-      {name:"Friend at firm",role:"Could provide context",link:"",last:"",followUp:""}
-    ],
-    timeline:[
-      ["Applied","Application submitted."],
-      ["Interview invite","First round scheduled."]
-    ]
-  },
-  {
-    id:"offer",
-    company:"Sample Tech",
-    role:"Strategy & Operations Analyst",
-    city:"New York",
-    industry:"Consumer Tech",
-    function:"Tech",
-    status:"Offer",
-    saved:"30 days ago",
-    deadline:"Decision in 5 days",
-    source:"Company site",
-    comp:"$110K + $10K",
-    attention:true,
-    next:"Compare offer",
-    nextDetail:"Use the offer comparison view before making a decision.",
-    jobUrl:"",
-    resumeUrl:"",
-    notes:"",
-    contacts:[{name:"Hiring manager",role:"Offer discussion complete",link:"",last:"",followUp:""}],
-    timeline:[
-      ["Applied","Submitted."],
-      ["Interviewed","Rounds complete."],
-      ["Offer","Decision due soon."]
-    ]
-  }
-];
+const DEFAULT_JOBS = [];
 
 const DEFAULT_SHORTCUTS = [
   {id:"linkedin",name:"LinkedIn Jobs",description:"Search and save roles",url:"https://www.linkedin.com/jobs/",fixed:true},
@@ -258,7 +82,7 @@ function loadJSON(key, fallback){
 
 let jobs = loadJSON(STORAGE_KEY, DEFAULT_JOBS).map(normalizeJob);
 let shortcuts = loadJSON(SHORTCUTS_KEY, DEFAULT_SHORTCUTS);
-let offers = loadJSON(OFFERS_KEY, SAMPLE_OFFERS);
+let offers = loadJSON(OFFERS_KEY, []);
 
 let activeStatusFilter = "All";
 let activeChip = "All";
@@ -622,7 +446,21 @@ function renderJobs(){
   const table=document.getElementById("jobsTable");
 
   if(!list.length){
-    table.innerHTML="<div class='list-item'>No jobs match this view yet.</div>";
+    const isCompletelyEmpty=activeJobs().length===0;
+    table.innerHTML=isCompletelyEmpty
+      ? `<div class="empty-jobs">
+          <div class="eyebrow">Your search starts here</div>
+          <h3>Add your first opportunity</h3>
+          <p>Paste a job link or add one manually. Once you do, the dashboard, filters, city breakdown, and industry breakdown build themselves around your search.</p>
+          <div class="actions">
+            <button class="btn" id="emptyPasteJob">Paste job link</button>
+            <button class="btn primary" id="emptyAddJob">Add manually</button>
+          </div>
+        </div>`
+      : "<div class='list-item'>No jobs match this view yet.</div>";
+
+    document.getElementById("emptyPasteJob")?.addEventListener("click",()=>document.getElementById("pasteBtn").click());
+    document.getElementById("emptyAddJob")?.addEventListener("click",()=>showJobModal());
     return;
   }
 
@@ -712,6 +550,7 @@ function openJob(id){
       }));
       persist();
       updateAll();
+maybeShowOnboarding();
       openJob(j.id);
       toast("Contact removed");
     };
@@ -829,6 +668,42 @@ document.getElementById("deleteJobBtn").onclick=()=>{
   updateAll();
   go("jobs");
   toast("Job deleted");
+};
+
+
+const onboardingBackdrop=document.getElementById("onboardingBackdrop");
+
+function completeOnboarding(){
+  localStorage.setItem(ONBOARDING_KEY,"done");
+  onboardingBackdrop.classList.remove("show");
+}
+
+function maybeShowOnboarding(){
+  const hasSeenOnboarding=localStorage.getItem(ONBOARDING_KEY)==="done";
+  const hasJobs=jobs.length>0;
+  if(!hasSeenOnboarding && !hasJobs){
+    onboardingBackdrop.classList.add("show");
+  }
+}
+
+document.getElementById("onboardPasteBtn").onclick=()=>{
+  const url=document.getElementById("onboardJobUrl").value.trim();
+  if(!url){
+    document.getElementById("onboardJobUrl").focus();
+    return;
+  }
+  completeOnboarding();
+  showJobModal(null,url);
+};
+
+document.getElementById("onboardManualBtn").onclick=()=>{
+  completeOnboarding();
+  showJobModal();
+};
+
+document.getElementById("onboardSkipBtn").onclick=()=>{
+  completeOnboarding();
+  refreshDashboard();
 };
 
 const jobBackdrop=document.getElementById("jobModalBackdrop");
@@ -962,6 +837,7 @@ document.getElementById("saveJob").onclick=()=>{
   });
 
   jobs.unshift(j);
+  localStorage.setItem(ONBOARDING_KEY,"done");
   persist();
   hideJobModal();
 
