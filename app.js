@@ -1106,18 +1106,8 @@ document.getElementById("chatgptConnectionsBtn").onclick=()=>{
 
   const promptText=`I am considering/applying to the ${j.role} role at ${j.company} in ${j.city}. Help me identify relevant people I could reach out to about this role. Prioritize people likely connected to the team or hiring process, product/business leaders relevant to the role, early-talent or recruiting contacts, and people with plausible shared background. For each person, give me their current title, why they are relevant, and a public profile/link when available. Do not guess private contact information or invent people. Also suggest the 3 best people to contact first and why.`;
 
-  const chatTab=window.open("about:blank","_blank");
-
-  copyTextRobust(promptText)
-    .then(()=>{
-      if(chatTab) chatTab.location.href="https://chatgpt.com/";
-      else window.open("https://chatgpt.com/","_blank","noopener");
-      toast("Prompt copied — paste it into ChatGPT");
-    })
-    .catch(()=>{
-      if(chatTab) chatTab.close();
-      window.prompt("Copy this prompt into ChatGPT:",promptText);
-    });
+  const chatUrl="https://chatgpt.com/?q="+encodeURIComponent(promptText);
+  window.open(chatUrl,"_blank","noopener");
 };
 
 const shortcutBackdrop=document.getElementById("shortcutModalBackdrop");
