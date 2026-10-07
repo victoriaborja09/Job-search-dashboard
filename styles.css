@@ -114,3 +114,133 @@ a{color:inherit}
 @media(max-width:1150px){.metric-grid{grid-template-columns:repeat(2,1fr)}.dashboard-bottom{grid-template-columns:1fr}.detail-shell{grid-template-columns:1fr}.breakdowns{grid-template-columns:1fr}.jobs-row{grid-template-columns:1.4fr 1fr .8fr .8fr}.offer-grid{grid-template-columns:1fr}}
 @media(max-width:850px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:relative;border-right:none;border-bottom:1px solid var(--line)}.jobs-row{grid-template-columns:1fr 1fr}.jobs-row.header{display:none}.detail-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.content{padding:18px}.topbar{flex-direction:column}.metric-grid,.detail-grid,.form-grid,.offer-stats{grid-template-columns:1fr}.field.full{grid-column:auto}.chart-wrap{align-items:flex-start;flex-direction:column}.jobs-row{grid-template-columns:1fr}.detail-toolbar,.detail-topline,.section-heading-row,.panel-heading-row{align-items:flex-start;flex-direction:column}}
+
+
+/* Interactive at-a-glance charts */
+.donut{
+  background:transparent;
+  overflow:visible;
+  isolation:isolate;
+}
+.donut:after{display:none}
+.donut svg{width:150px;height:150px;display:block;overflow:visible}
+.donut-segment{
+  cursor:pointer;
+  transition:transform .16s ease,filter .16s ease,opacity .16s ease;
+  transform-box:fill-box;
+  transform-origin:center;
+  outline:none;
+}
+.donut-segment:hover,
+.donut-segment:focus{
+  transform:translateY(-4px) scale(1.025);
+  filter:drop-shadow(0 5px 5px rgba(60,45,32,.16));
+}
+.donut-segment.is-dimmed{opacity:.45}
+.donut-tooltip{
+  position:absolute;
+  left:50%;
+  top:-4px;
+  transform:translate(-50%,-100%);
+  background:#211d19;
+  color:#fff;
+  border-radius:999px;
+  padding:7px 10px;
+  font-size:11px;
+  font-weight:750;
+  white-space:nowrap;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .12s ease,transform .12s ease;
+  z-index:5;
+}
+.donut-tooltip.show{
+  opacity:1;
+  transform:translate(-50%,-108%);
+}
+.donut-center{
+  pointer-events:none;
+}
+.legend-button{
+  width:100%;
+  border:0;
+  background:transparent;
+  padding:2px 0;
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+  border-radius:8px;
+}
+.legend-button:hover{background:#f7f2eb}
+.legend-button .legend-row{padding:3px 5px}
+
+/* Job-page recruiting actions */
+.find-people-grid{
+  display:grid;
+  gap:9px;
+}
+.people-tool{
+  width:100%;
+  text-align:left;
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:14px;
+  padding:12px;
+  color:var(--text);
+  transition:transform .14s ease,border-color .14s ease;
+}
+.people-tool:hover{
+  transform:translateY(-1px);
+  border-color:#c6b6a5;
+}
+.people-tool strong{
+  display:block;
+  margin-bottom:4px;
+  font-size:13px;
+}
+.people-tool span{
+  display:block;
+  font-size:11px;
+  color:var(--muted);
+  line-height:1.4;
+}
+.timeline-meta{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:11px;
+}
+.next-action-due{
+  margin-top:5px;
+  font-size:11px;
+  color:var(--rose);
+  font-weight:700;
+}
+.checkbox-field{
+  display:flex;
+  align-items:center;
+}
+.checkbox-label{
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center;
+  gap:8px;
+  text-transform:none!important;
+  letter-spacing:0!important;
+  font-size:13px!important;
+  color:var(--text)!important;
+  cursor:pointer;
+}
+.checkbox-label input{width:auto!important}
+.contact-actions{
+  display:flex;
+  gap:7px;
+  margin-top:8px;
+}
+.text-button{
+  border:0;
+  background:transparent;
+  color:var(--accent);
+  padding:0;
+  font-size:11px;
+  font-weight:700;
+}
