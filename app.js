@@ -202,7 +202,6 @@ function donutPath(cx,cy,outerR,innerR,startAngle,endAngle){
 
 function applyDimensionFilter(key,value){
   activeStatusFilter="All";
-  activeChip="All";
   activeDimensionFilter={key,value};
   syncChips();
   renderJobs();
@@ -667,7 +666,6 @@ function setLinkCard(cardId,textId,url,activeText,inactiveText){
 
 document.querySelectorAll(".metric").forEach(m=>m.onclick=()=>{
   activeStatusFilter=m.dataset.filter;
-  activeChip="All";
   activeDimensionFilter=null;
   syncChips();
   renderJobs();
@@ -676,7 +674,6 @@ document.querySelectorAll(".metric").forEach(m=>m.onclick=()=>{
 
 document.getElementById("clearFilter").onclick=()=>{
   activeStatusFilter="All";
-  activeChip="All";
   activeDimensionFilter=null;
   syncChips();
   renderJobs();
