@@ -393,3 +393,36 @@ a{color:inherit}
 .paste-job-modal .field input{
   padding:13px 14px;
 }
+
+.quick-access-actions{
+  display:flex;
+  gap:7px;
+  align-items:center;
+}
+.quick-link-edit{
+  cursor:default;
+}
+.quick-link-edit:hover{
+  transform:none;
+}
+.quick-link-remove{
+  border:1px solid #d7b8b3;
+  background:#fff;
+  color:#8b4b45;
+  padding:7px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:750;
+}
+.quick-link-remove:hover{
+  background:var(--rose2);
+}
+.quick-links-empty{
+  border:1px dashed var(--line);
+  border-radius:16px;
+  padding:16px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.45;
+  background:#fff;
+}
