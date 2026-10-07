@@ -1092,11 +1092,43 @@ document.getElementById("editJobBtn").onclick=()=>{
 };
 document.getElementById("cancelJobModal").onclick=hideJobModal;
 
-document.getElementById("pasteBtn").onclick=()=>{
-  const url=prompt("Paste the job posting URL:");
-  if(!url) return;
+const pasteJobModalBackdrop=document.getElementById("pasteJobModalBackdrop");
+const pasteJobUrlInput=document.getElementById("pasteJobUrlInput");
+
+function openPasteJobModal(){
+  pasteJobUrlInput.value="";
+  pasteJobModalBackdrop.classList.add("show");
+  requestAnimationFrame(()=>pasteJobUrlInput.focus());
+}
+
+function closePasteJobModal(){
+  pasteJobModalBackdrop.classList.remove("show");
+}
+
+function submitPastedJob(){
+  const url=pasteJobUrlInput.value.trim();
+  if(!url){
+    pasteJobUrlInput.focus();
+    return;
+  }
+  closePasteJobModal();
   startJobFromUrl(url);
-};
+}
+
+document.getElementById("pasteBtn").onclick=openPasteJobModal;
+document.getElementById("cancelPasteJob").onclick=closePasteJobModal;
+document.getElementById("continuePasteJob").onclick=submitPastedJob;
+
+pasteJobUrlInput.addEventListener("keydown",event=>{
+  if(event.key==="Enter"){
+    event.preventDefault();
+    submitPastedJob();
+  }
+});
+
+pasteJobModalBackdrop.addEventListener("click",event=>{
+  if(event.target===pasteJobModalBackdrop) closePasteJobModal();
+});
 
 document.getElementById("saveJob").onclick=()=>{
   const company=document.getElementById("fCompany").value.trim();
