@@ -88,6 +88,7 @@ let activeStatusFilter = "All";
 let activeDimensionFilter = null;
 let activeJobId = null;
 let editingJobId = null;
+let editingShortcuts = false;
 
 function persist(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs));
@@ -422,15 +423,38 @@ function parseSavedDays(text){
 
 function renderQuickLinks(){
   const box=document.getElementById("quickLinks");
-  box.innerHTML=shortcuts.map(item=>`
-    <a class="quick-link" href="${safeURL(item.url) || "#"}" target="_blank" rel="noopener">
-      <div>
-        <strong>${escapeHTML(item.name)}</strong>
-        <span>${escapeHTML(item.description || "")}</span>
-      </div>
-      <div class="arrow">↗</div>
-    </a>
-  `).join("");
+  if(!box) return;
+
+  if(!shortcuts.length){
+    box.innerHTML='<div class="quick-links-empty">No quick links yet. Add the sites or documents you use most.</div>';
+    return;
+  }
+
+  box.innerHTML=shortcuts.map(item=>editingShortcuts
+    ? `<div class="quick-link quick-link-edit">
+        <div>
+          <strong>${escapeHTML(item.name)}</strong>
+          <span>${escapeHTML(item.description || "")}</span>
+        </div>
+        <button type="button" class="quick-link-remove" data-remove-shortcut="${escapeHTML(item.id)}">Remove</button>
+      </div>`
+    : `<a class="quick-link" href="${safeURL(item.url) || "#"}" target="_blank" rel="noopener">
+        <div>
+          <strong>${escapeHTML(item.name)}</strong>
+          <span>${escapeHTML(item.description || "")}</span>
+        </div>
+        <div class="arrow">↗</div>
+      </a>`
+  ).join("");
+
+  box.querySelectorAll("[data-remove-shortcut]").forEach(button=>{
+    button.addEventListener("click",()=>{
+      shortcuts=shortcuts.filter(item=>item.id!==button.dataset.removeShortcut);
+      persist();
+      renderQuickLinks();
+      toast("Quick link removed");
+    });
+  });
 }
 
 function filteredJobs(){
@@ -1373,6 +1397,12 @@ document.getElementById("chatgptConnectionsBtn").onclick=()=>{
 
   const chatUrl="https://chatgpt.com/?q="+encodeURIComponent(promptText);
   window.open(chatUrl,"_blank","noopener");
+};
+
+document.getElementById("editShortcutsBtn").onclick=()=>{
+  editingShortcuts=!editingShortcuts;
+  document.getElementById("editShortcutsBtn").textContent=editingShortcuts ? "Done" : "Edit";
+  renderQuickLinks();
 };
 
 const shortcutBackdrop=document.getElementById("shortcutModalBackdrop");
