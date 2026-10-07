@@ -290,6 +290,12 @@ const statusClass = s => ({
 }[s] || "status-saved");
 
 function go(page){
+  if(page==="dashboard"){
+    // Always rebuild dashboard-derived views from the current jobs array
+    // before showing the page, so charts/counts never require a reload.
+    refreshDashboard();
+  }
+
   document.querySelectorAll(".section").forEach(x=>x.classList.remove("active"));
   document.getElementById(page).classList.add("active");
   document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
@@ -964,6 +970,10 @@ document.getElementById("saveJob").onclick=()=>{
   refreshDashboard();
   renderJobs();
   renderOffers();
+
+  // Run once more on the next paint so the chart DOM reflects the new data
+  // immediately even if the dashboard section is currently hidden.
+  requestAnimationFrame(refreshDashboard);
 
   openJob(j.id);
   toast("Job added — dashboard breakdowns updated");
