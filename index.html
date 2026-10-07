@@ -167,7 +167,10 @@
           </div>
 
           <div class="detail-section">
-            <h4>Next action</h4>
+            <div class="section-heading-row">
+              <h4>Next action</h4>
+              <button class="mini-btn" id="editNextActionBtn">Edit</button>
+            </div>
             <div class="list" id="detailNext"></div>
           </div>
 
@@ -180,7 +183,10 @@
           </div>
 
           <div class="detail-section">
-            <h4>Timeline</h4>
+            <div class="section-heading-row">
+              <h4>Timeline</h4>
+              <button class="mini-btn" id="addTimelineBtn">+ Add activity</button>
+            </div>
             <div class="list" id="detailTimeline"></div>
           </div>
         </div>
@@ -195,6 +201,20 @@
           </div>
 
           <div class="list detail-contact-list" id="detailContacts"></div>
+
+          <div class="detail-section">
+            <h4>Find people</h4>
+            <div class="find-people-grid">
+              <button class="people-tool" id="apolloConnectionsBtn">
+                <strong>Find contact info on Apollo</strong>
+                <span>Open Apollo People and copy this company name for your search.</span>
+              </button>
+              <button class="people-tool" id="chatgptConnectionsBtn">
+                <strong>Ask ChatGPT to find connections</strong>
+                <span>Open ChatGPT with a ready-to-paste networking research prompt.</span>
+              </button>
+            </div>
+          </div>
 
           <div class="detail-section">
             <h4>Links</h4>
@@ -251,6 +271,8 @@
       <div class="field"><label>Compensation</label><input id="fComp" placeholder="$120K–$140K"></div>
       <div class="field"><label>Source</label><input id="fSource" placeholder="LinkedIn"></div>
       <div class="field"><label>Next action</label><input id="fNext" placeholder="Submit application"></div>
+      <div class="field"><label>Next action due</label><input id="fNextDue" type="date"></div>
+      <div class="field full"><label>Next action details</label><input id="fNextDetail" placeholder="Tailor resume and submit before the deadline"></div>
       <div class="field full"><label>Job posting URL</label><input id="fJobUrl" placeholder="https://..."></div>
       <div class="field full"><label>Resume / document URL</label><input id="fResumeUrl" placeholder="https://docs.google.com/..."></div>
     </div>
@@ -278,6 +300,41 @@
     <div class="modal-actions">
       <button class="btn" id="cancelContactModal">Cancel</button>
       <button class="btn primary" id="saveContact">Save contact</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="timelineModalBackdrop">
+  <div class="modal small-modal">
+    <h3 id="timelineModalTitle">Add activity</h3>
+    <p>Keep the recruiting process current as things happen.</p>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Activity type</label>
+        <select id="tType">
+          <option>Application</option>
+          <option>Online assessment</option>
+          <option>HireVue</option>
+          <option>Interview</option>
+          <option>Networking</option>
+          <option>Referral</option>
+          <option>Offer</option>
+          <option>Custom</option>
+        </select>
+      </div>
+      <div class="field"><label>Date</label><input id="tDate" type="date"></div>
+      <div class="field full"><label>Title</label><input id="tTitle" placeholder="Invited to HireVue"></div>
+      <div class="field full"><label>Details</label><input id="tDetail" placeholder="Complete by Friday"></div>
+      <div class="field full checkbox-field">
+        <label class="checkbox-label"><input id="tSetNext" type="checkbox"> Make this my next action</label>
+      </div>
+      <div class="field"><label>Next action due</label><input id="tNextDue" type="date"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" id="cancelTimelineModal">Cancel</button>
+      <button class="btn primary" id="saveTimeline">Add to timeline</button>
     </div>
   </div>
 </div>
