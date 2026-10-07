@@ -376,3 +376,20 @@ a{color:inherit}
 .danger-confirm:hover{
   background:#692b27;
 }
+
+/* In-app paste-job modal */
+.paste-job-modal{
+  width:min(560px,100%);
+  padding:28px;
+}
+.paste-job-modal h3{
+  font-size:28px;
+  margin:6px 0 8px;
+}
+.paste-job-modal > p{
+  line-height:1.5;
+  margin-bottom:20px;
+}
+.paste-job-modal .field input{
+  padding:13px 14px;
+}
