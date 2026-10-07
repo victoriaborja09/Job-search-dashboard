@@ -114,32 +114,33 @@ const statusClass = s => ({
 }[s] || "status-saved");
 
 function go(page){
-  if(page==="dashboard"){
-    // Always rebuild dashboard-derived views from the current jobs array
-    // before showing the page, so charts/counts never require a reload.
-    refreshDashboard();
-  }
+  const target=document.getElementById(page);
+  if(!target) return;
+
+  // Re-render the destination from the current in-memory data before showing it.
+  if(page==="dashboard") refreshDashboard();
+  if(page==="jobs") renderJobs();
+  if(page==="compare") renderOffers();
 
   document.querySelectorAll(".section").forEach(x=>x.classList.remove("active"));
-  document.getElementById(page).classList.add("active");
+  target.classList.add("active");
   document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
-document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{
-  if(b.dataset.page==="jobs"){
-    activeStatusFilter="All";
-    activeChip="All";
-    activeDimensionFilter=null;
-    syncChips();
-    renderJobs();
-  }
+document.querySelectorAll(".nav button").forEach(button=>{
+  button.addEventListener("click",()=>{
+    const page=button.dataset.page;
 
-  if(b.dataset.page==="dashboard"){
-    refreshDashboard();
-  }
+    if(page==="jobs"){
+      activeStatusFilter="All";
+      activeChip="All";
+      activeDimensionFilter=null;
+      syncChips();
+    }
 
-  go(b.dataset.page);
+    go(page);
+  });
 });
 
 function activeJobs(){
@@ -550,7 +551,6 @@ function openJob(id){
       }));
       persist();
       updateAll();
-maybeShowOnboarding();
       openJob(j.id);
       toast("Contact removed");
     };
@@ -703,7 +703,7 @@ document.getElementById("onboardManualBtn").onclick=()=>{
 
 document.getElementById("onboardSkipBtn").onclick=()=>{
   completeOnboarding();
-  refreshDashboard();
+  go("dashboard");
 };
 
 const jobBackdrop=document.getElementById("jobModalBackdrop");
@@ -798,14 +798,9 @@ document.getElementById("saveJob").onclick=()=>{
     }));
     persist();
     hideJobModal();
-
-    // City/industry edits must instantly flow through to both donut charts.
-    refreshDashboard();
-    renderJobs();
-    renderOffers();
-
+    updateAll();
     openJob(j.id);
-    toast("Job updated — dashboard breakdowns updated");
+    toast("Job updated");
     return;
   }
 
@@ -841,18 +836,12 @@ document.getElementById("saveJob").onclick=()=>{
   persist();
   hideJobModal();
 
-  // Rebuild all derived views immediately from the new jobs array.
-  // This keeps donut percentages/slices in sync the moment a job is added.
-  refreshDashboard();
-  renderJobs();
-  renderOffers();
+  // Re-render every data-driven view immediately from the updated jobs array.
+  updateAll();
 
-  // Run once more on the next paint so the chart DOM reflects the new data
-  // immediately even if the dashboard section is currently hidden.
-  requestAnimationFrame(refreshDashboard);
-
+  // Open the saved job right away. Dashboard and All Jobs are already current.
   openJob(j.id);
-  toast("Job added — dashboard breakdowns updated");
+  toast("Job added");
 };
 
 const contactBackdrop=document.getElementById("contactModalBackdrop");
@@ -1160,4 +1149,18 @@ function updateAll(){
   renderOffers();
 }
 
-updateAll();
+function init(){
+  updateAll();
+  maybeShowOnboarding();
+}
+
+window.addEventListener("storage",event=>{
+  if([STORAGE_KEY,SHORTCUTS_KEY,OFFERS_KEY].includes(event.key)){
+    jobs=loadJSON(STORAGE_KEY, DEFAULT_JOBS).map(normalizeJob);
+    shortcuts=loadJSON(SHORTCUTS_KEY, DEFAULT_SHORTCUTS);
+    offers=loadJSON(OFFERS_KEY, []);
+    updateAll();
+  }
+});
+
+init();
