@@ -196,26 +196,38 @@ function applyDimensionFilter(key,value){
 function renderDonut(key, donutId, legendId, totalId){
   const vals=distribution(key);
   const total=activeJobs().length;
-  document.getElementById(totalId).textContent=total;
-
   const host=document.getElementById(donutId);
   const legend=document.getElementById(legendId);
 
+  if(!host || !legend) return;
+
+  // Important: renderDonut replaces the contents of the donut container.
+  // Therefore the total element must be recreated on every render instead
+  // of looking it up before render. This keeps blank -> first-job updates live.
   if(!total){
-    host.innerHTML='<div class="donut-center"><div><strong>0</strong><span>jobs</span></div></div>';
-    host.style.background="#eee6db";
+    host.style.background="transparent";
+    host.innerHTML=`
+      <svg viewBox="0 0 150 150" aria-label="${escapeHTML(key)} breakdown">
+        <circle cx="75" cy="75" r="49" fill="none" stroke="#eee6db" stroke-width="28"></circle>
+      </svg>
+      <div class="donut-center">
+        <div><strong id="${totalId}">0</strong><span>jobs</span></div>
+      </div>
+    `;
     legend.innerHTML="<span class='small'>No jobs yet</span>";
     return;
   }
 
   host.style.background="transparent";
   let angle=0;
+
   const paths=vals.map(([name,count],i)=>{
     const fraction=count/total;
-    const start=angle;
-    const end=angle+(fraction*360);
-    angle=end;
+    const startAngle=angle;
+    const endAngle=angle+(fraction*360);
+    angle=endAngle;
     const pct=Math.round(fraction*100);
+
     return `<path
       class="donut-segment"
       tabindex="0"
@@ -226,14 +238,16 @@ function renderDonut(key, donutId, legendId, totalId){
       data-label="${escapeHTML(name)}"
       data-pct="${pct}"
       fill="${palette[i%palette.length]}"
-      d="${donutPath(75,75,63,35,start,end)}"></path>`;
+      d="${donutPath(75,75,63,35,startAngle,endAngle)}"></path>`;
   }).join("");
 
   host.innerHTML=`
     <svg viewBox="0 0 150 150" aria-label="${escapeHTML(key)} breakdown">
       ${paths}
     </svg>
-    <div class="donut-center"><div><strong>${total}</strong><span>jobs</span></div></div>
+    <div class="donut-center">
+      <div><strong id="${totalId}">${total}</strong><span>jobs</span></div>
+    </div>
     <div class="donut-tooltip"></div>
   `;
 
@@ -241,12 +255,14 @@ function renderDonut(key, donutId, legendId, totalId){
   const segments=[...host.querySelectorAll(".donut-segment")];
 
   function show(seg){
+    if(!tooltip) return;
     tooltip.textContent=`${seg.dataset.pct}% ${seg.dataset.label}`;
     tooltip.classList.add("show");
     segments.forEach(s=>s.classList.toggle("is-dimmed",s!==seg));
   }
+
   function hide(){
-    tooltip.classList.remove("show");
+    if(tooltip) tooltip.classList.remove("show");
     segments.forEach(s=>s.classList.remove("is-dimmed"));
   }
 
