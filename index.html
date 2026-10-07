@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Job Search Command Center</title>
-<link rel="stylesheet" href="styles.css?v=20261007-2055">
+<link rel="stylesheet" href="styles.css?v=20261007-2105">
 </head>
 <body>
 <div class="app">
@@ -275,6 +275,24 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="pasteJobModalBackdrop">
+  <div class="modal small-modal paste-job-modal">
+    <div class="eyebrow">Add from link</div>
+    <h3>Paste a job posting</h3>
+    <p>We’ll try to pull in the company, role, location, compensation, deadline, and other details we can find.</p>
+
+    <div class="field full">
+      <label for="pasteJobUrlInput">Job posting URL</label>
+      <input id="pasteJobUrlInput" type="url" placeholder="https://..." autocomplete="off">
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn" id="cancelPasteJob">Cancel</button>
+      <button type="button" class="btn primary" id="continuePasteJob">Continue</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="deleteModalBackdrop">
   <div class="modal small-modal confirm-modal">
     <div class="confirm-icon">!</div>
@@ -416,6 +434,6 @@
   </div>
 </div>
 
-<script src="app.js?v=20261007-2055"></script>
+<script src="app.js?v=20261007-2105"></script>
 </body>
 </html>
