@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Job Search Command Center</title>
-<link rel="stylesheet" href="styles.css?v=20261007-2105">
+<link rel="stylesheet" href="styles.css?v=20261007-2115">
 </head>
 <body>
 <div class="app">
@@ -21,10 +21,6 @@
       <button type="button" data-page="compare">Offer Compare</button>
     </div>
 
-    <div class="sidebar-note">
-      <strong>Current build</strong>
-      <span>Dashboard = overview. Job pages = details. Offer Compare = decision tool.</span>
-    </div>
   </aside>
 
   <main class="content">
@@ -99,7 +95,10 @@
               <h3>Quick access</h3>
               <div class="panel-sub">Jump back to the places where your search already lives.</div>
             </div>
-            <button class="mini-btn" id="addShortcutBtn">+ Add</button>
+            <div class="quick-access-actions">
+              <button type="button" class="mini-btn" id="editShortcutsBtn">Edit</button>
+              <button type="button" class="mini-btn" id="addShortcutBtn">+ Add</button>
+            </div>
           </div>
           <div class="quick-links" id="quickLinks"></div>
         </div>
@@ -434,6 +433,6 @@
   </div>
 </div>
 
-<script src="app.js?v=20261007-2105"></script>
+<script src="app.js?v=20261007-2115"></script>
 </body>
 </html>
