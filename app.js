@@ -1069,21 +1069,55 @@ document.getElementById("apolloConnectionsBtn").onclick=()=>{
   }
 };
 
+function copyTextRobust(text){
+  if(navigator.clipboard?.writeText){
+    return navigator.clipboard.writeText(text).catch(()=>legacyCopyText(text));
+  }
+  return legacyCopyText(text);
+}
+
+function legacyCopyText(text){
+  return new Promise((resolve,reject)=>{
+    const ta=document.createElement("textarea");
+    ta.value=text;
+    ta.setAttribute("readonly","");
+    ta.style.position="fixed";
+    ta.style.opacity="0";
+    ta.style.pointerEvents="none";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0,ta.value.length);
+
+    try{
+      const ok=document.execCommand("copy");
+      ta.remove();
+      ok ? resolve() : reject(new Error("Copy command failed"));
+    }catch(err){
+      ta.remove();
+      reject(err);
+    }
+  });
+}
+
 document.getElementById("chatgptConnectionsBtn").onclick=()=>{
   const j=jobs.find(x=>x.id===activeJobId);
   if(!j) return;
 
   const promptText=`I am considering/applying to the ${j.role} role at ${j.company} in ${j.city}. Help me identify relevant people I could reach out to about this role. Prioritize people likely connected to the team or hiring process, product/business leaders relevant to the role, early-talent or recruiting contacts, and people with plausible shared background. For each person, give me their current title, why they are relevant, and a public profile/link when available. Do not guess private contact information or invent people. Also suggest the 3 best people to contact first and why.`;
 
-  window.open("https://chatgpt.com/","_blank","noopener");
+  const chatTab=window.open("about:blank","_blank");
 
-  if(navigator.clipboard?.writeText){
-    navigator.clipboard.writeText(promptText)
-      .then(()=>toast("ChatGPT prompt copied — paste it into the new chat"))
-      .catch(()=>window.prompt("Copy this prompt into ChatGPT:",promptText));
-  }else{
-    window.prompt("Copy this prompt into ChatGPT:",promptText);
-  }
+  copyTextRobust(promptText)
+    .then(()=>{
+      if(chatTab) chatTab.location.href="https://chatgpt.com/";
+      else window.open("https://chatgpt.com/","_blank","noopener");
+      toast("Prompt copied — paste it into ChatGPT");
+    })
+    .catch(()=>{
+      if(chatTab) chatTab.close();
+      window.prompt("Copy this prompt into ChatGPT:",promptText);
+    });
 };
 
 const shortcutBackdrop=document.getElementById("shortcutModalBackdrop");
