@@ -50,9 +50,9 @@ function normalizeJob(job){
     id:job.id || "job"+Date.now()+Math.random().toString(16).slice(2),
     company:job.company || "New company",
     role:job.role || "New role",
-    city:job.city || "Other",
-    industry:job.industry || "Other",
-    function:job.function || "Other",
+    city:job.city || "",
+    industry:job.industry || "",
+    function:job.function || "",
     status:job.status || "Saved",
     saved:job.saved || "Just now",
     deadline:job.deadline || "No deadline",
@@ -85,7 +85,6 @@ let shortcuts = loadJSON(SHORTCUTS_KEY, DEFAULT_SHORTCUTS);
 let offers = loadJSON(OFFERS_KEY, []);
 
 let activeStatusFilter = "All";
-let activeChip = "All";
 let activeDimensionFilter = null;
 let activeJobId = null;
 let editingJobId = null;
@@ -148,7 +147,6 @@ document.querySelectorAll(".nav button").forEach(button=>{
     const page=button.dataset.page;
     if(page==="jobs"){
       activeStatusFilter="All";
-      activeChip="All";
       activeDimensionFilter=null;
       syncChips();
     }
@@ -171,7 +169,11 @@ function updateCounts(){
 
 function distribution(key){
   const counts={};
-  activeJobs().forEach(j=>counts[j[key]]=(counts[j[key]]||0)+1);
+  activeJobs().forEach(j=>{
+    const value=String(j[key] || "").trim();
+    if(!value) return;
+    counts[value]=(counts[value]||0)+1;
+  });
   return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
 }
 
@@ -209,7 +211,7 @@ function applyDimensionFilter(key,value){
 
 function renderDonut(key, donutId, legendId, totalId){
   const vals=distribution(key);
-  const total=activeJobs().length;
+  const total=vals.reduce((sum,[,count])=>sum+count,0);
   const host=document.getElementById(donutId);
   const legend=document.getElementById(legendId);
 
@@ -437,25 +439,68 @@ function filteredJobs(){
     const statusOK = activeStatusFilter==="All" ||
       (activeStatusFilter==="Attention" ? j.attention : j.status===activeStatusFilter);
 
-    let chipOK=true;
-    if(activeChip==="NYC") chipOK=j.city.toLowerCase().includes("new york");
-    else if(activeChip==="SF") chipOK=j.city.toLowerCase().includes("san francisco") || j.city.toLowerCase().includes("san mateo");
-    else if(activeChip==="Product") chipOK=j.function==="Product";
-    else if(activeChip==="Finance") chipOK=j.function==="Finance";
-    else if(activeChip==="Tech") chipOK=j.function==="Tech" || ["AI","Consumer Tech"].includes(j.industry);
-
     const dimensionOK = !activeDimensionFilter ||
-      String(j[activeDimensionFilter.key] || "")===activeDimensionFilter.value;
+      String(j[activeDimensionFilter.key] || "").trim()===activeDimensionFilter.value;
 
-    return statusOK && chipOK && dimensionOK;
+    return statusOK && dimensionOK;
+  });
+}
+
+function renderFilterChips(){
+  const container=document.getElementById("dynamicFilters");
+  if(!container) return;
+
+  const cities=distribution("city").map(([name])=>({key:"city",value:name}));
+  const industries=distribution("industry").map(([name])=>({key:"industry",value:name}));
+  const items=[...cities,...industries];
+
+  container.innerHTML=`
+    <button class="chip ${!activeDimensionFilter ? "active" : ""}" data-filter-all="true">All</button>
+    ${items.map(item=>`
+      <button
+        class="chip ${activeDimensionFilter?.key===item.key && activeDimensionFilter?.value===item.value ? "active" : ""}"
+        data-filter-key="${escapeHTML(item.key)}"
+        data-filter-value="${escapeHTML(item.value)}">
+        ${escapeHTML(item.value)}
+      </button>
+    `).join("")}
+  `;
+
+  container.querySelector("[data-filter-all]")?.addEventListener("click",()=>{
+    activeDimensionFilter=null;
+    renderJobs();
+  });
+
+  container.querySelectorAll("[data-filter-key]").forEach(button=>{
+    button.addEventListener("click",()=>{
+      activeDimensionFilter={
+        key:button.dataset.filterKey,
+        value:button.dataset.filterValue
+      };
+      renderJobs();
+    });
   });
 }
 
 function syncChips(){
-  document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("active",c.dataset.chip===activeChip));
+  renderFilterChips();
+}
+
+function renderFunctionSuggestions(){
+  const list=document.getElementById("functionSuggestions");
+  if(!list) return;
+
+  const values=[...new Set(
+    activeJobs()
+      .map(j=>String(j.function || "").trim())
+      .filter(Boolean)
+  )];
+
+  list.innerHTML=values.map(value=>`<option value="${escapeHTML(value)}"></option>`).join("");
 }
 
 function renderJobs(){
+  renderFilterChips();
   const list=filteredJobs();
   document.getElementById("visibleCount").textContent=`${list.length} role${list.length===1?"":"s"} shown`;
 
@@ -501,7 +546,7 @@ function renderJobs(){
     </div>
     ${list.map(j=>`
       <div class="jobs-row job" data-id="${j.id}">
-        <div><div class="job-title">${escapeHTML(j.role)}</div><div class="small">${escapeHTML(j.function)} · ${escapeHTML(j.industry)}</div></div>
+        <div><div class="job-title">${escapeHTML(j.role)}</div><div class="small">${[j.function,j.industry].filter(Boolean).map(escapeHTML).join(" · ") || "Uncategorized"}</div></div>
         <div><div class="job-title">${escapeHTML(j.company)}</div><div class="small">${escapeHTML(j.city)}</div></div>
         <div><span class="status-pill ${statusClass(j.status)}">${escapeHTML(j.status)}</span></div>
         <div><strong>${escapeHTML(j.deadline)}</strong></div>
@@ -539,7 +584,7 @@ function openJob(id){
   document.getElementById("detailStatus").textContent=j.status;
   document.getElementById("detailStatusSelect").value=j.status;
   document.getElementById("detailRole").textContent=j.role;
-  document.getElementById("detailCompany").textContent=`${j.company} · ${j.city} · ${j.function} · ${j.industry}`;
+  document.getElementById("detailCompany").textContent=[j.company,j.city,j.function,j.industry].filter(Boolean).join(" · ");
   document.getElementById("detailSaved").textContent=j.saved;
   document.getElementById("detailDeadline").textContent=j.deadline;
   document.getElementById("detailSource").textContent=j.source;
@@ -627,13 +672,6 @@ document.querySelectorAll(".metric").forEach(m=>m.onclick=()=>{
   syncChips();
   renderJobs();
   go("jobs");
-});
-
-document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
-  activeChip=c.dataset.chip;
-  activeDimensionFilter=null;
-  syncChips();
-  renderJobs();
 });
 
 document.getElementById("clearFilter").onclick=()=>{
@@ -745,7 +783,8 @@ function showJobModal(job=null,initialUrl=""){
   document.getElementById("fRole").value=job?.role || "";
   document.getElementById("fCity").value=job?.city || "";
   document.getElementById("fIndustry").value=job?.industry || "";
-  document.getElementById("fFunction").value=job?.function || "Product";
+  renderFunctionSuggestions();
+  document.getElementById("fFunction").value=job?.function || "";
   document.getElementById("fStatus").value=job?.status || "Saved";
   document.getElementById("fDeadline").value=job?.deadline || "";
   document.getElementById("fComp").value=job?.comp || "";
@@ -1056,9 +1095,9 @@ document.getElementById("saveJob").onclick=()=>{
     Object.assign(j,{
       company,
       role,
-      city:document.getElementById("fCity").value.trim() || "Other",
-      industry:document.getElementById("fIndustry").value.trim() || "Other",
-      function:document.getElementById("fFunction").value,
+      city:document.getElementById("fCity").value.trim(),
+      industry:document.getElementById("fIndustry").value.trim(),
+      function:document.getElementById("fFunction").value.trim(),
       status:document.getElementById("fStatus").value,
       deadline:document.getElementById("fDeadline").value.trim() || "No deadline",
       comp:document.getElementById("fComp").value.trim() || "Not added",
@@ -1090,9 +1129,9 @@ document.getElementById("saveJob").onclick=()=>{
     id:"job"+Date.now(),
     company,
     role,
-    city:document.getElementById("fCity").value.trim() || "Other",
-    industry:document.getElementById("fIndustry").value.trim() || "Other",
-    function:document.getElementById("fFunction").value,
+    city:document.getElementById("fCity").value.trim(),
+    industry:document.getElementById("fIndustry").value.trim(),
+    function:document.getElementById("fFunction").value.trim(),
     status:document.getElementById("fStatus").value,
     saved:"Just now",
     deadline:document.getElementById("fDeadline").value.trim() || "No deadline",
@@ -1425,6 +1464,7 @@ function refreshDashboard(){
   safeRender("city chart failed",()=>renderDonut("city","cityDonut","cityLegend","cityTotal"));
   safeRender("industry chart failed",()=>renderDonut("industry","industryDonut","industryLegend","industryTotal"));
   safeRender("quick links failed",renderQuickLinks);
+  safeRender("function suggestions failed",renderFunctionSuggestions);
 }
 
 function updateAll(){
