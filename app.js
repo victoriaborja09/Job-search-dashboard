@@ -209,6 +209,18 @@ function normalizeContact(contact){
   };
 }
 
+function normalizeTimelineEntry(entry){
+  if(Array.isArray(entry)){
+    return {title:entry[0] || "Activity", detail:entry[1] || "", date:"", type:"Custom"};
+  }
+  return {
+    title:entry?.title || "Activity",
+    detail:entry?.detail || "",
+    date:entry?.date || "",
+    type:entry?.type || "Custom"
+  };
+}
+
 function normalizeJob(job){
   return {
     id:job.id || "job"+Date.now()+Math.random().toString(16).slice(2),
@@ -225,11 +237,12 @@ function normalizeJob(job){
     attention:Boolean(job.attention),
     next:job.next || "Review role",
     nextDetail:job.nextDetail || "Add the next step you want to take.",
+    nextDue:job.nextDue || "",
     jobUrl:job.jobUrl || "",
     resumeUrl:job.resumeUrl || "",
     notes:job.notes || "",
     contacts:(job.contacts || []).map(normalizeContact),
-    timeline:Array.isArray(job.timeline) ? job.timeline : [["Saved role","Added to dashboard."]],
+    timeline:Array.isArray(job.timeline) ? job.timeline.map(normalizeTimelineEntry) : [normalizeTimelineEntry(["Saved role","Added to dashboard."])],
     archived:Boolean(job.archived)
   };
 }
@@ -249,6 +262,7 @@ let offers = loadJSON(OFFERS_KEY, SAMPLE_OFFERS);
 
 let activeStatusFilter = "All";
 let activeChip = "All";
+let activeDimensionFilter = null;
 let activeJobId = null;
 let editingJobId = null;
 
@@ -286,6 +300,7 @@ document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{
   if(b.dataset.page==="jobs"){
     activeStatusFilter="All";
     activeChip="All";
+    activeDimensionFilter=null;
     syncChips();
     renderJobs();
   }
@@ -312,32 +327,121 @@ function distribution(key){
 
 const palette=["#284b59","#b98a46","#9d645a","#6a5e88","#6f8a72","#b7a89a","#4f7d8b"];
 
+function polarPoint(cx,cy,r,angle){
+  const rad=(angle-90)*Math.PI/180;
+  return {x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};
+}
+
+function donutPath(cx,cy,outerR,innerR,startAngle,endAngle){
+  const cappedEnd=endAngle-startAngle>=360 ? startAngle+359.999 : endAngle;
+  const p1=polarPoint(cx,cy,outerR,startAngle);
+  const p2=polarPoint(cx,cy,outerR,cappedEnd);
+  const p3=polarPoint(cx,cy,innerR,cappedEnd);
+  const p4=polarPoint(cx,cy,innerR,startAngle);
+  const largeArc=(cappedEnd-startAngle)>180 ? 1 : 0;
+  return [
+    "M",p1.x,p1.y,
+    "A",outerR,outerR,0,largeArc,1,p2.x,p2.y,
+    "L",p3.x,p3.y,
+    "A",innerR,innerR,0,largeArc,0,p4.x,p4.y,
+    "Z"
+  ].join(" ");
+}
+
+function applyDimensionFilter(key,value){
+  activeStatusFilter="All";
+  activeChip="All";
+  activeDimensionFilter={key,value};
+  syncChips();
+  renderJobs();
+  go("jobs");
+}
+
 function renderDonut(key, donutId, legendId, totalId){
   const vals=distribution(key);
   const total=activeJobs().length;
   document.getElementById(totalId).textContent=total;
 
+  const host=document.getElementById(donutId);
+  const legend=document.getElementById(legendId);
+
   if(!total){
-    document.getElementById(donutId).style.background="#eee6db";
-    document.getElementById(legendId).innerHTML="<span class='small'>No jobs yet</span>";
+    host.innerHTML='<div class="donut-center"><div><strong>0</strong><span>jobs</span></div></div>';
+    host.style.background="#eee6db";
+    legend.innerHTML="<span class='small'>No jobs yet</span>";
     return;
   }
 
-  let acc=0;
-  const parts=[];
+  host.style.background="transparent";
+  let angle=0;
+  const paths=vals.map(([name,count],i)=>{
+    const fraction=count/total;
+    const start=angle;
+    const end=angle+(fraction*360);
+    angle=end;
+    const pct=Math.round(fraction*100);
+    return `<path
+      class="donut-segment"
+      tabindex="0"
+      role="button"
+      aria-label="${escapeHTML(name)}: ${pct}%"
+      data-key="${escapeHTML(key)}"
+      data-value="${escapeHTML(name)}"
+      data-label="${escapeHTML(name)}"
+      data-pct="${pct}"
+      fill="${palette[i%palette.length]}"
+      d="${donutPath(75,75,63,35,start,end)}"></path>`;
+  }).join("");
 
-  vals.forEach(([name,count],i)=>{
-    const start=(acc/total)*100;
-    const end=((acc+count)/total)*100;
-    parts.push(`${palette[i%palette.length]} ${start}% ${end}%`);
-    acc+=count;
+  host.innerHTML=`
+    <svg viewBox="0 0 150 150" aria-label="${escapeHTML(key)} breakdown">
+      ${paths}
+    </svg>
+    <div class="donut-center"><div><strong>${total}</strong><span>jobs</span></div></div>
+    <div class="donut-tooltip"></div>
+  `;
+
+  const tooltip=host.querySelector(".donut-tooltip");
+  const segments=[...host.querySelectorAll(".donut-segment")];
+
+  function show(seg){
+    tooltip.textContent=`${seg.dataset.pct}% ${seg.dataset.label}`;
+    tooltip.classList.add("show");
+    segments.forEach(s=>s.classList.toggle("is-dimmed",s!==seg));
+  }
+  function hide(){
+    tooltip.classList.remove("show");
+    segments.forEach(s=>s.classList.remove("is-dimmed"));
+  }
+
+  segments.forEach(seg=>{
+    seg.addEventListener("mouseenter",()=>show(seg));
+    seg.addEventListener("mouseleave",hide);
+    seg.addEventListener("focus",()=>show(seg));
+    seg.addEventListener("blur",hide);
+    seg.addEventListener("click",()=>applyDimensionFilter(seg.dataset.key,seg.dataset.value));
+    seg.addEventListener("keydown",e=>{
+      if(e.key==="Enter" || e.key===" "){
+        e.preventDefault();
+        applyDimensionFilter(seg.dataset.key,seg.dataset.value);
+      }
+    });
   });
 
-  document.getElementById(donutId).style.background=`conic-gradient(${parts.join(",")})`;
-  document.getElementById(legendId).innerHTML=vals.map(([name,count],i)=>{
+  legend.innerHTML=vals.map(([name,count],i)=>{
     const pct=Math.round(count/total*100);
-    return `<div class="legend-row"><span class="dot" style="background:${palette[i%palette.length]}"></span><span>${escapeHTML(name)}</span><strong>${pct}%</strong></div>`;
+    return `<button class="legend-button" data-key="${escapeHTML(key)}" data-value="${escapeHTML(name)}">
+      <span class="legend-row">
+        <span class="dot" style="background:${palette[i%palette.length]}"></span>
+        <span>${escapeHTML(name)}</span>
+        <strong>${pct}%</strong>
+      </span>
+    </button>`;
   }).join("");
+
+  legend.querySelectorAll(".legend-button").forEach(btn=>{
+    btn.onclick=()=>applyDimensionFilter(btn.dataset.key,btn.dataset.value);
+  });
 }
 
 function escapeHTML(value){
@@ -474,7 +578,10 @@ function filteredJobs(){
     else if(activeChip==="Finance") chipOK=j.function==="Finance";
     else if(activeChip==="Tech") chipOK=j.function==="Tech" || ["AI","Consumer Tech"].includes(j.industry);
 
-    return statusOK && chipOK;
+    const dimensionOK = !activeDimensionFilter ||
+      String(j[activeDimensionFilter.key] || "")===activeDimensionFilter.value;
+
+    return statusOK && chipOK && dimensionOK;
   });
 }
 
@@ -486,16 +593,20 @@ function renderJobs(){
   const list=filteredJobs();
   document.getElementById("visibleCount").textContent=`${list.length} role${list.length===1?"":"s"} shown`;
 
-  const title=activeStatusFilter==="All"
-    ? "All jobs"
-    : activeStatusFilter==="Attention"
-      ? "Needs attention"
-      : `${activeStatusFilter} jobs`;
+  const title=activeDimensionFilter
+    ? `${activeDimensionFilter.value} jobs`
+    : activeStatusFilter==="All"
+      ? "All jobs"
+      : activeStatusFilter==="Attention"
+        ? "Needs attention"
+        : `${activeStatusFilter} jobs`;
 
   document.getElementById("jobsTitle").textContent=title;
-  document.getElementById("jobsSubtitle").textContent=activeStatusFilter==="Attention"
-    ? "Roles with a deadline, follow-up, stale status, or another next action."
-    : "Every opportunity in one place. Click any role to open its full page.";
+  document.getElementById("jobsSubtitle").textContent=activeDimensionFilter
+    ? `Showing jobs where ${activeDimensionFilter.key} is ${activeDimensionFilter.value}. Click any role to open its full page.`
+    : activeStatusFilter==="Attention"
+      ? "Roles with a deadline, follow-up, stale status, or another next action."
+      : "Every opportunity in one place. Click any role to open its full page.";
 
   const table=document.getElementById("jobsTable");
 
@@ -595,6 +706,7 @@ function setLinkCard(cardId,textId,url,activeText,inactiveText){
 document.querySelectorAll(".metric").forEach(m=>m.onclick=()=>{
   activeStatusFilter=m.dataset.filter;
   activeChip="All";
+  activeDimensionFilter=null;
   syncChips();
   renderJobs();
   go("jobs");
@@ -602,6 +714,7 @@ document.querySelectorAll(".metric").forEach(m=>m.onclick=()=>{
 
 document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
   activeChip=c.dataset.chip;
+  activeDimensionFilter=null;
   syncChips();
   renderJobs();
 });
@@ -609,6 +722,7 @@ document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
 document.getElementById("clearFilter").onclick=()=>{
   activeStatusFilter="All";
   activeChip="All";
+  activeDimensionFilter=null;
   syncChips();
   renderJobs();
 };
