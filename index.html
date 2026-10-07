@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recruiting Dashboard V2</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="eyebrow">Working title</div>
+      <h1>Job Search Command Center</h1>
+      <p>One place to save, organize, and act on every opportunity.</p>
+    </div>
+    <div class="nav">
+      <button class="active" data-page="dashboard">Dashboard</button>
+      <button data-page="jobs">All Jobs</button>
+      <button data-page="compare">Offer Compare</button>
+    </div>
+    <div class="sidebar-note"><strong>V2 direction</strong><span>Dashboard = overview. Job details only open after you click a role.</span></div>
+  </aside>
+
+  <main class="content">
+    <section class="section active" id="dashboard">
+      <div class="topbar">
+        <div>
+          <h2>Your recruiting home base</h2>
+          <p>Everything you found elsewhere, organized here. The dashboard should tell you what needs attention without repeating the entire job list.</p>
+        </div>
+        <div class="actions">
+          <button class="btn" id="pasteBtn">Paste job link</button>
+          <button class="btn primary" id="addBtn">Add a job</button>
+        </div>
+      </div>
+
+      <div class="metric-grid">
+        <button class="metric" data-filter="Saved"><div class="label">Saved</div><div class="value" id="savedCount">0</div><div class="sub">Click to view all saved roles</div></button>
+        <button class="metric" data-filter="Applied"><div class="label">Applied</div><div class="value" id="appliedCount">0</div><div class="sub">Click to view submitted applications</div></button>
+        <button class="metric" data-filter="Interviewing"><div class="label">Interviewing</div><div class="value" id="interviewCount">0</div><div class="sub">Click to view active interview processes</div></button>
+        <button class="metric" data-filter="Attention"><div class="label">Needs attention</div><div class="value" id="attentionCount">0</div><div class="sub">Deadlines, stale saves, and follow-ups</div></button>
+      </div>
+
+      <div class="attention-grid">
+        <button class="attention deadline" data-open-job="rhood"><h4>Deadline coming up</h4><p><strong>Robinhood APM</strong> closes in <strong>3 days</strong>. Open the role to see what still needs to be done.</p></button>
+        <button class="attention followup" data-open-job="rhood"><h4>Follow-up due today</h4><p><strong>Sabrina Ali</strong> was contacted <strong>7 days ago</strong>. Open the role to review networking notes.</p></button>
+        <button class="attention stale" data-open-job="roblox"><h4>Saved but stale</h4><p><strong>Roblox APM</strong> was saved <strong>9 days ago</strong> and is still sitting in Saved.</p></button>
+      </div>
+
+      <div class="dashboard-bottom">
+        <div class="panel">
+          <h3>Your search at a glance</h3>
+          <div class="panel-sub">These update automatically as jobs are added or removed.</div>
+          <div class="breakdowns">
+            <div class="breakdown">
+              <h4>By city</h4>
+              <div class="chart-wrap">
+                <div class="donut" id="cityDonut"><div class="donut-center"><div><strong id="cityTotal">0</strong><span>jobs</span></div></div></div>
+                <div class="legend" id="cityLegend"></div>
+              </div>
+            </div>
+            <div class="breakdown">
+              <h4>By industry</h4>
+              <div class="chart-wrap">
+                <div class="donut" id="industryDonut"><div class="donut-center"><div><strong id="industryTotal">0</strong><span>jobs</span></div></div></div>
+                <div class="legend" id="industryLegend"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Quick access</h3>
+          <div class="panel-sub">Jump back to the places where your search already lives.</div>
+          <div class="quick-links">
+            <a class="quick-link" href="https://www.linkedin.com/jobs/" target="_blank" rel="noopener"><div><strong>LinkedIn Jobs</strong><span>Search and save roles</span></div><div class="arrow">↗</div></a>
+            <a class="quick-link" href="https://joinhandshake.com/" target="_blank" rel="noopener"><div><strong>Handshake</strong><span>Campus and early-career jobs</span></div><div class="arrow">↗</div></a>
+            <a class="quick-link" href="https://docs.google.com/" target="_blank" rel="noopener"><div><strong>Resume folder</strong><span>Placeholder for your Google Drive / Docs resume link</span></div><div class="arrow">↗</div></a>
+            <a class="quick-link" href="#" onclick="alert('Future idea: let the user pin any personal link here — resume, cover letter folder, portfolio, school career portal, etc.');return false;"><div><strong>+ Add your own shortcut</strong><span>Portfolio, cover letter folder, career portal, anything</span></div><div class="arrow">+</div></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="jobs">
+      <div class="topbar">
+        <div>
+          <h2 id="jobsTitle">All jobs</h2>
+          <p id="jobsSubtitle">Every opportunity in one place. Click any role to open its full page.</p>
+        </div>
+        <div class="actions"><button class="btn" id="clearFilter">Clear filter</button><button class="btn primary" id="addBtn2">Add a job</button></div>
+      </div>
+
+      <div class="jobs-toolbar">
+        <div class="filters">
+          <button class="chip active" data-chip="All">All</button>
+          <button class="chip" data-chip="NYC">NYC</button>
+          <button class="chip" data-chip="SF">SF</button>
+          <button class="chip" data-chip="Product">Product</button>
+          <button class="chip" data-chip="Finance">Finance</button>
+          <button class="chip" data-chip="Tech">Tech</button>
+        </div>
+        <div class="small" id="visibleCount"></div>
+      </div>
+
+      <div class="jobs-table" id="jobsTable"></div>
+    </section>
+
+    <section class="section" id="detail">
+      <button class="back" id="backToJobs">← Back to jobs</button>
+      <div class="detail-shell">
+        <div class="detail-main">
+          <span class="status-pill status-saved" id="detailStatus">Saved</span>
+          <h3 id="detailRole">Role</h3>
+          <div class="detail-company" id="detailCompany">Company</div>
+          <div class="detail-grid">
+            <div class="detail-box"><small>Saved</small><strong id="detailSaved"></strong></div>
+            <div class="detail-box"><small>Deadline</small><strong id="detailDeadline"></strong></div>
+            <div class="detail-box"><small>Source</small><strong id="detailSource"></strong></div>
+            <div class="detail-box"><small>Comp</small><strong id="detailComp"></strong></div>
+          </div>
+
+          <div class="detail-section"><h4>Next action</h4><div class="list" id="detailNext"></div></div>
+          <div class="detail-section"><h4>Timeline</h4><div class="list" id="detailTimeline"></div></div>
+        </div>
+
+        <div class="detail-side">
+          <h3 style="font-size:21px">Contacts</h3>
+          <div class="panel-sub">People connected to this role.</div>
+          <div class="list" style="margin-top:14px" id="detailContacts"></div>
+          <button class="btn primary" style="width:100%;margin-top:12px">+ Add contact</button>
+
+          <div class="detail-section">
+            <h4>Links</h4>
+            <div class="list">
+              <div class="list-item"><strong>Job posting</strong><span class="small">Open original source ↗</span></div>
+              <div class="list-item"><strong>Resume used</strong><span class="small">Victoria_Borja_Product.pdf ↗</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="compare">
+      <div class="topbar">
+        <div>
+          <h2>Compare opportunities, not just salary</h2>
+          <p>Translate compensation into what the job means in real life. The product shows tradeoffs instead of telling the user which offer is “better.”</p>
+        </div>
+        <div class="actions"><button class="btn">Edit assumptions</button><button class="btn primary">Add another offer</button></div>
+      </div>
+
+      <div class="offer-grid">
+        <div class="offer">
+          <h3>Offer A</h3><p>Product Analyst · New York, NY</p>
+          <div class="offer-stats">
+            <div class="offer-stat"><small>Base salary</small><strong>$115,000</strong></div>
+            <div class="offer-stat"><small>Sign-on</small><strong>$10,000</strong></div>
+            <div class="offer-stat"><small>Est. monthly take-home</small><strong>$6,180</strong></div>
+            <div class="offer-stat"><small>Rent assumption</small><strong>$2,400</strong></div>
+            <div class="offer-stat"><small>After fixed costs</small><strong>$2,130/mo</strong></div>
+            <div class="offer-stat"><small>First-year cash comp</small><strong>$125,000</strong></div>
+          </div>
+        </div>
+        <div class="offer">
+          <h3>Offer B</h3><p>Strategy Associate · San Francisco, CA</p>
+          <div class="offer-stats">
+            <div class="offer-stat"><small>Base salary</small><strong>$130,000</strong></div>
+            <div class="offer-stat"><small>Sign-on</small><strong>$5,000</strong></div>
+            <div class="offer-stat"><small>Est. monthly take-home</small><strong>$6,650</strong></div>
+            <div class="offer-stat"><small>Rent assumption</small><strong>$3,100</strong></div>
+            <div class="offer-stat"><small>After fixed costs</small><strong>$2,050/mo</strong></div>
+            <div class="offer-stat"><small>First-year cash comp</small><strong>$135,000</strong></div>
+          </div>
+        </div>
+      </div>
+      <div class="compare-note"><strong>Example interpretation:</strong> Offer B pays more on paper, but under the assumptions entered here, it leaves slightly less each month after fixed costs. The job seeker still makes the decision.</div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h3>Add a job</h3>
+    <p>V2 demo: adding a role immediately updates the dashboard counts and demographic breakdowns.</p>
+    <div class="form-grid">
+      <div class="field"><label>Company</label><input id="fCompany" value="Stripe"></div>
+      <div class="field"><label>Role</label><input id="fRole" value="New Grad Product Operations"></div>
+      <div class="field"><label>City</label><select id="fCity"><option>New York</option><option>San Francisco</option><option>Austin</option><option>Other</option></select></div>
+      <div class="field"><label>Industry</label><select id="fIndustry"><option>Fintech</option><option>AI</option><option>Consumer Tech</option><option>Asset Management</option><option>Consulting</option></select></div>
+      <div class="field"><label>Status</label><select id="fStatus"><option>Saved</option><option>Applying</option><option>Applied</option><option>Interviewing</option><option>Offer</option></select></div>
+      <div class="field"><label>Deadline</label><input id="fDeadline" value="In 14 days"></div>
+    </div>
+    <div class="modal-actions"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveJob">Save job</button></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
