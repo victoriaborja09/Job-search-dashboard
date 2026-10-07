@@ -722,18 +722,40 @@ document.getElementById("archiveJobBtn").onclick=()=>{
   toast("Job archived");
 };
 
+const deleteModalBackdrop=document.getElementById("deleteModalBackdrop");
+
 document.getElementById("deleteJobBtn").onclick=()=>{
   const j=jobs.find(x=>x.id===activeJobId);
   if(!j) return;
-  if(!confirm(`Delete ${j.company} · ${j.role}? This cannot be undone.`)) return;
+
+  document.getElementById("deleteConfirmText").textContent=
+    `Delete ${j.company} · ${j.role}? This will permanently remove its notes, contacts, and timeline.`;
+
+  deleteModalBackdrop.classList.add("show");
+};
+
+document.getElementById("cancelDeleteJob").onclick=()=>{
+  deleteModalBackdrop.classList.remove("show");
+};
+
+document.getElementById("confirmDeleteJob").onclick=()=>{
+  const j=jobs.find(x=>x.id===activeJobId);
+  if(!j) return;
 
   jobs=jobs.filter(x=>x.id!==activeJobId);
   activeJobId=null;
   persist();
+  deleteModalBackdrop.classList.remove("show");
   updateAll();
   go("jobs");
   toast("Job deleted");
 };
+
+deleteModalBackdrop.addEventListener("click",event=>{
+  if(event.target===deleteModalBackdrop){
+    deleteModalBackdrop.classList.remove("show");
+  }
+});
 
 
 const onboardingBackdrop=document.getElementById("onboardingBackdrop");
