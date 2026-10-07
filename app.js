@@ -304,6 +304,11 @@ document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{
     syncChips();
     renderJobs();
   }
+
+  if(b.dataset.page==="dashboard"){
+    refreshDashboard();
+  }
+
   go(b.dataset.page);
 });
 
@@ -912,9 +917,14 @@ document.getElementById("saveJob").onclick=()=>{
     }));
     persist();
     hideJobModal();
-    updateAll();
+
+    // City/industry edits must instantly flow through to both donut charts.
+    refreshDashboard();
+    renderJobs();
+    renderOffers();
+
     openJob(j.id);
-    toast("Job updated");
+    toast("Job updated — dashboard breakdowns updated");
     return;
   }
 
@@ -948,9 +958,15 @@ document.getElementById("saveJob").onclick=()=>{
   jobs.unshift(j);
   persist();
   hideJobModal();
-  updateAll();
+
+  // Rebuild all derived views immediately from the new jobs array.
+  // This keeps donut percentages/slices in sync the moment a job is added.
+  refreshDashboard();
+  renderJobs();
+  renderOffers();
+
   openJob(j.id);
-  toast("Job added");
+  toast("Job added — dashboard breakdowns updated");
 };
 
 const contactBackdrop=document.getElementById("contactModalBackdrop");
@@ -1244,12 +1260,16 @@ document.getElementById("loadSampleOffers").onclick=()=>{
   toast("Sample offers loaded");
 };
 
-function updateAll(){
+function refreshDashboard(){
   updateCounts();
   renderAttention();
   renderDonut("city","cityDonut","cityLegend","cityTotal");
   renderDonut("industry","industryDonut","industryLegend","industryTotal");
   renderQuickLinks();
+}
+
+function updateAll(){
+  refreshDashboard();
   renderJobs();
   renderOffers();
 }
