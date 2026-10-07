@@ -113,25 +113,39 @@ const statusClass = s => ({
   Closed:"status-closed"
 }[s] || "status-saved");
 
+function safeRender(label,fn){
+  try{
+    fn();
+  }catch(err){
+    console.error(label,err);
+  }
+}
+
 function go(page){
   const target=document.getElementById(page);
   if(!target) return;
 
-  // Re-render the destination from the current in-memory data before showing it.
-  if(page==="dashboard") refreshDashboard();
-  if(page==="jobs") renderJobs();
-  if(page==="compare") renderOffers();
-
-  document.querySelectorAll(".section").forEach(x=>x.classList.remove("active"));
+  // Navigation must never depend on a chart/widget successfully rendering.
+  document.querySelectorAll(".section").forEach(section=>section.classList.remove("active"));
   target.classList.add("active");
-  document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+  document.querySelectorAll(".nav button").forEach(button=>{
+    button.classList.toggle("active",button.dataset.page===page);
+  });
+
+  // Render after the destination is already visible.
+  if(page==="dashboard") safeRender("dashboard render failed",refreshDashboard);
+  if(page==="jobs") safeRender("jobs render failed",renderJobs);
+  if(page==="compare") safeRender("offers render failed",renderOffers);
+
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
 document.querySelectorAll(".nav button").forEach(button=>{
-  button.addEventListener("click",()=>{
-    const page=button.dataset.page;
+  button.type="button";
+  button.addEventListener("click",event=>{
+    event.preventDefault();
 
+    const page=button.dataset.page;
     if(page==="jobs"){
       activeStatusFilter="All";
       activeChip="All";
@@ -1065,7 +1079,8 @@ document.getElementById("saveJob").onclick=()=>{
     }));
     persist();
     hideJobModal();
-    updateAll();
+    safeRender("jobs refresh failed",renderJobs);
+    safeRender("dashboard refresh failed",refreshDashboard);
     openJob(j.id);
     toast("Job updated");
     return;
@@ -1103,10 +1118,12 @@ document.getElementById("saveJob").onclick=()=>{
   persist();
   hideJobModal();
 
-  // Re-render every data-driven view immediately from the updated jobs array.
-  updateAll();
+  // Update all job-based views in memory immediately, but never block navigation
+  // if an unrelated dashboard widget has a rendering problem.
+  safeRender("jobs refresh failed",renderJobs);
+  safeRender("offers refresh failed",renderOffers);
+  safeRender("dashboard refresh failed",refreshDashboard);
 
-  // Open the saved job right away. Dashboard and All Jobs are already current.
   openJob(j.id);
   toast("Job added");
 };
@@ -1403,17 +1420,17 @@ document.getElementById("loadSampleOffers").onclick=()=>{
 };
 
 function refreshDashboard(){
-  updateCounts();
-  renderAttention();
-  renderDonut("city","cityDonut","cityLegend","cityTotal");
-  renderDonut("industry","industryDonut","industryLegend","industryTotal");
-  renderQuickLinks();
+  safeRender("dashboard counts failed",updateCounts);
+  safeRender("attention cards failed",renderAttention);
+  safeRender("city chart failed",()=>renderDonut("city","cityDonut","cityLegend","cityTotal"));
+  safeRender("industry chart failed",()=>renderDonut("industry","industryDonut","industryLegend","industryTotal"));
+  safeRender("quick links failed",renderQuickLinks);
 }
 
 function updateAll(){
-  refreshDashboard();
-  renderJobs();
-  renderOffers();
+  safeRender("dashboard refresh failed",refreshDashboard);
+  safeRender("jobs refresh failed",renderJobs);
+  safeRender("offers refresh failed",renderOffers);
 }
 
 function init(){
