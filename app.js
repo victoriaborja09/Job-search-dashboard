@@ -25,6 +25,156 @@ function clone(value){
   return JSON.parse(JSON.stringify(value));
 }
 
+function localToday(){
+  const d=new Date();
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function localDateISO(date=new Date()){
+  const d=new Date(date);
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+function parseDateOnly(value){
+  const raw=String(value||"").trim();
+  if(!raw) return null;
+  const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(iso){
+    const d=new Date(Number(iso[1]),Number(iso[2])-1,Number(iso[3]));
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const d=new Date(raw);
+  if(Number.isNaN(d.getTime())) return null;
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function dayDifference(from,to){
+  const a=new Date(from);
+  const b=new Date(to);
+  a.setHours(0,0,0,0);
+  b.setHours(0,0,0,0);
+  return Math.round((b-a)/86400000);
+}
+
+function inferCreatedAt(saved){
+  const today=localToday();
+  const raw=String(saved||"").toLowerCase();
+  const match=raw.match(/(\d+)\s+day/);
+  if(match){
+    today.setDate(today.getDate()-Number(match[1]));
+  }
+  return localDateISO(today);
+}
+
+function inferDeadlineDate(deadline,createdAt){
+  const raw=String(deadline||"").trim();
+  if(!raw || /^no deadline$/i.test(raw)) return "";
+  if(/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+  const relative=raw.match(/in\s+(\d+)\s+day/i);
+  if(relative){
+    const base=parseDateOnly(createdAt) || localToday();
+    base.setDate(base.getDate()+Number(relative[1]));
+    return localDateISO(base);
+  }
+
+  const parsed=parseDateOnly(raw);
+  return parsed ? localDateISO(parsed) : "";
+}
+
+function savedAgeDays(job){
+  const savedDate=parseDateOnly(job.createdAt) || localToday();
+  return Math.max(0,dayDifference(savedDate,localToday()));
+}
+
+function savedLabel(job){
+  const days=savedAgeDays(job);
+  if(days===0) return "Just now";
+  if(days===1) return "1 day ago";
+  return `${days} days ago`;
+}
+
+function deadlineDateForJob(job){
+  return parseDateOnly(job.deadlineDate || inferDeadlineDate(job.deadline,job.createdAt));
+}
+
+function deadlineDays(job){
+  const d=deadlineDateForJob(job);
+  return d ? dayDifference(localToday(),d) : NaN;
+}
+
+function displayDeadline(job){
+  const d=deadlineDateForJob(job);
+  return d ? d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : (job.deadline || "No deadline");
+}
+
+function contactFollowUpInfo(job){
+  let best=null;
+
+  for(const contact of job.contacts || []){
+    let dueDate=null;
+    let reason="";
+
+    const explicit=parseDateOnly(contact.followUp);
+    const last=parseDateOnly(contact.last);
+
+    if(explicit && explicit<=localToday()){
+      dueDate=explicit;
+      reason="scheduled";
+    }
+
+    if(last){
+      const auto=new Date(last);
+      auto.setDate(auto.getDate()+7);
+      auto.setHours(0,0,0,0);
+      if(auto<=localToday() && (!dueDate || auto<dueDate)){
+        dueDate=auto;
+        reason="one-week";
+      }
+    }
+
+    if(dueDate && (!best || dueDate<best.date)){
+      best={job,contact,date:dueDate,reason};
+    }
+  }
+
+  return best;
+}
+
+function latestJobActivityDate(job){
+  const dates=(job.timeline || [])
+    .map(item=>parseDateOnly(item.date))
+    .filter(Boolean);
+
+  const created=parseDateOnly(job.createdAt);
+  if(created) dates.push(created);
+  if(!dates.length) return localToday();
+
+  return dates.sort((a,b)=>b-a)[0];
+}
+
+function staleJobDays(job){
+  if(!["Saved","Applying","Applied"].includes(job.status)) return -1;
+  return Math.max(0,dayDifference(latestJobActivityDate(job),localToday()));
+}
+
+function jobNeedsAttention(job){
+  const deadline=deadlineDays(job);
+  if(Number.isFinite(deadline) && deadline>=0 && deadline<=5) return true;
+  if(contactFollowUpInfo(job)) return true;
+  if(staleJobDays(job)>=7) return true;
+
+  const nextDue=parseDateOnly(job.nextDue);
+  if(nextDue && nextDue<=localToday()) return true;
+
+  return false;
+}
+
 function normalizeContact(contact){
   if(Array.isArray(contact)){
     return {name:contact[0] || "Contact", role:contact[1] || "", link:"", last:"", followUp:""};
@@ -51,6 +201,9 @@ function normalizeTimelineEntry(entry){
 }
 
 function normalizeJob(job){
+  const createdAt=job.createdAt || inferCreatedAt(job.saved);
+  const deadlineDate=job.deadlineDate || inferDeadlineDate(job.deadline,createdAt);
+
   return {
     id:job.id || "job"+Date.now()+Math.random().toString(16).slice(2),
     company:job.company || "New company",
@@ -60,7 +213,10 @@ function normalizeJob(job){
     function:job.function || "",
     status:job.status || "Saved",
     saved:job.saved || "Just now",
+    createdAt,
     deadline:job.deadline || "No deadline",
+    deadlineDate,
+    highPriority:Boolean(job.highPriority),
     source:job.source || "Manual",
     comp:job.comp || "Not added",
     attention:Boolean(job.attention),
@@ -233,7 +389,7 @@ function updateCounts(){
   document.getElementById("savedCount").textContent=current.filter(j=>j.status==="Saved").length;
   document.getElementById("appliedCount").textContent=current.filter(j=>j.status==="Applied").length;
   document.getElementById("interviewCount").textContent=current.filter(j=>j.status==="Interviewing").length;
-  document.getElementById("attentionCount").textContent=current.filter(j=>j.attention).length;
+  document.getElementById("attentionCount").textContent=current.filter(jobNeedsAttention).length;
 }
 
 function distribution(key){
@@ -403,66 +559,78 @@ function safeURL(url){
 
 function renderAttention(){
   const current=activeJobs();
-  const deadlineJob=current
-    .map(j=>({job:j,days:parseRelativeDays(j.deadline)}))
-    .filter(x=>Number.isFinite(x.days) && x.days>=0)
-    .sort((a,b)=>a.days-b.days)[0]?.job;
 
-  const today=new Date();
-  today.setHours(0,0,0,0);
+  const deadlineEntry=current
+    .map(job=>({job,days:deadlineDays(job)}))
+    .filter(item=>Number.isFinite(item.days) && item.days>=0 && item.days<=5)
+    .sort((a,b)=>a.days-b.days)[0];
 
-  let followup=null;
-  for(const job of current){
-    for(const contact of job.contacts){
-      if(!contact.followUp) continue;
-      const d=new Date(contact.followUp+"T00:00:00");
-      if(!Number.isNaN(d.getTime()) && d<=today){
-        followup={job,contact,date:d};
-        break;
-      }
-    }
-    if(followup) break;
-  }
+  const followup=current
+    .map(job=>contactFollowUpInfo(job))
+    .filter(Boolean)
+    .sort((a,b)=>a.date-b.date)[0] || null;
 
-  const staleJob=current
-    .filter(j=>j.status==="Saved")
-    .map(j=>({job:j,days:parseSavedDays(j.saved)}))
-    .filter(x=>x.days>=7)
-    .sort((a,b)=>b.days-a.days)[0]?.job;
+  const staleEntry=current
+    .map(job=>({job,days:staleJobDays(job)}))
+    .filter(item=>item.days>=7)
+    .sort((a,b)=>b.days-a.days)[0];
 
   const cards=[];
 
-  if(deadlineJob){
+  if(deadlineEntry){
+    const when=deadlineEntry.days===0 ? "today" : deadlineEntry.days===1 ? "tomorrow" : `in ${deadlineEntry.days} days`;
     cards.push({
       cls:"deadline",
-      title:"Deadline coming up",
-      text:`<strong>${escapeHTML(deadlineJob.company)} · ${escapeHTML(deadlineJob.role)}</strong> is due <strong>${escapeHTML(deadlineJob.deadline.toLowerCase())}</strong>.`,
-      id:deadlineJob.id
+      title:"Urgent deadline",
+      text:`<strong>${escapeHTML(deadlineEntry.job.company)} · ${escapeHTML(deadlineEntry.job.role)}</strong> is due <strong>${when}</strong>.`,
+      id:deadlineEntry.job.id
     });
   }else{
-    cards.push({cls:"deadline empty",title:"No urgent deadlines",text:"Nothing in your saved list is approaching a tracked deadline.",id:""});
+    cards.push({
+      cls:"deadline empty",
+      title:"No urgent deadlines",
+      text:"Nothing is due within the next five days.",
+      id:""
+    });
   }
 
   if(followup){
+    const sentDays=followup.contact.last
+      ? dayDifference(parseDateOnly(followup.contact.last),localToday())
+      : null;
+    const timing=followup.reason==="one-week" && Number.isFinite(sentDays)
+      ? `It has been ${sentDays} day${sentDays===1?"":"s"} since your last message.`
+      : "Your planned follow-up date has arrived.";
+
     cards.push({
       cls:"followup",
       title:"Follow-up due",
-      text:`<strong>${escapeHTML(followup.contact.name)}</strong> is due for a follow-up on the ${escapeHTML(followup.job.company)} role.`,
+      text:`<strong>${escapeHTML(followup.contact.name)}</strong> on the ${escapeHTML(followup.job.company)} role is due for a follow-up. ${timing}`,
       id:followup.job.id
     });
   }else{
-    cards.push({cls:"followup empty",title:"No follow-ups due",text:"Add follow-up dates to contacts and they will surface here automatically.",id:""});
+    cards.push({
+      cls:"followup empty",
+      title:"No follow-ups due",
+      text:"A follow-up will surface one week after your last email or message.",
+      id:""
+    });
   }
 
-  if(staleJob){
+  if(staleEntry){
     cards.push({
       cls:"stale",
-      title:"Saved but stale",
-      text:`<strong>${escapeHTML(staleJob.company)} · ${escapeHTML(staleJob.role)}</strong> has been saved for ${parseSavedDays(staleJob.saved)} days without moving forward.`,
-      id:staleJob.id
+      title:"Application getting stale",
+      text:`<strong>${escapeHTML(staleEntry.job.company)} · ${escapeHTML(staleEntry.job.role)}</strong> has had no activity for ${staleEntry.days} days.`,
+      id:staleEntry.job.id
     });
   }else{
-    cards.push({cls:"stale empty",title:"Nothing stale",text:"Your saved roles are moving or were added recently.",id:""});
+    cards.push({
+      cls:"stale empty",
+      title:"Nothing stale",
+      text:"No saved or active applications have gone a week without activity.",
+      id:""
+    });
   }
 
   const grid=document.getElementById("attentionGrid");
@@ -478,15 +646,36 @@ function renderAttention(){
   });
 }
 
-function parseRelativeDays(text){
-  const match=String(text||"").match(/in\s+(\d+)\s+day/i);
-  return match ? Number(match[1]) : NaN;
-}
+function renderHighPriority(){
+  const box=document.getElementById("priorityJobs");
+  if(!box) return;
 
-function parseSavedDays(text){
-  if(String(text||"").toLowerCase().includes("just now")) return 0;
-  const match=String(text||"").match(/(\d+)\s+day/i);
-  return match ? Number(match[1]) : 0;
+  const priority=activeJobs().filter(job=>job.highPriority);
+
+  if(!priority.length){
+    box.innerHTML='<div class="priority-empty">No high-priority jobs yet. Mark one as high priority when you add or edit it.</div>';
+    return;
+  }
+
+  box.innerHTML=priority.map(j=>`
+    <div class="jobs-row job priority-job" data-priority-job="${j.id}">
+      <div>
+        <div class="job-title">${escapeHTML(j.role)}</div>
+        <div class="small">★ High priority</div>
+      </div>
+      <div>
+        <div class="job-title">${escapeHTML(j.company)}</div>
+        <div class="small">${escapeHTML(j.city)}</div>
+      </div>
+      <div><span class="status-pill ${statusClass(j.status)}">${escapeHTML(j.status)}</span></div>
+      <div><strong>${escapeHTML(displayDeadline(j))}</strong></div>
+      <div><strong>${escapeHTML(j.next)}</strong><div class="small">${jobNeedsAttention(j)?"Needs attention":"On track"}</div></div>
+    </div>
+  `).join("");
+
+  box.querySelectorAll("[data-priority-job]").forEach(row=>{
+    row.onclick=()=>openJob(row.dataset.priorityJob);
+  });
 }
 
 function renderQuickLinks(){
@@ -528,7 +717,7 @@ function renderQuickLinks(){
 function filteredJobs(){
   return activeJobs().filter(j=>{
     const statusOK = activeStatusFilter==="All" ||
-      (activeStatusFilter==="Attention" ? j.attention : j.status===activeStatusFilter);
+      (activeStatusFilter==="Attention" ? jobNeedsAttention(j) : j.status===activeStatusFilter);
 
     const dimensionOK = !activeDimensionFilter ||
       String(j[activeDimensionFilter.key] || "").trim()===activeDimensionFilter.value;
@@ -637,12 +826,12 @@ function renderJobs(){
     </div>
     ${list.map(j=>`
       <div class="jobs-row job" data-id="${j.id}">
-        <div><div class="job-title">${escapeHTML(j.role)}</div><div class="small">${[j.function,j.industry].filter(Boolean).map(escapeHTML).join(" · ") || "Uncategorized"}</div></div>
+        <div><div class="job-title">${escapeHTML(j.role)}</div><div class="small">${j.highPriority ? "★ High priority · " : ""}${[j.function,j.industry].filter(Boolean).map(escapeHTML).join(" · ") || "Uncategorized"}</div></div>
         <div><div class="job-title">${escapeHTML(j.company)}</div><div class="small">${escapeHTML(j.city)}</div></div>
         <div><span class="status-pill ${statusClass(j.status)}">${escapeHTML(j.status)}</span></div>
-        <div><strong>${escapeHTML(j.deadline)}</strong></div>
-        <div><strong>${escapeHTML(j.saved)}</strong></div>
-        <div><strong>${escapeHTML(j.next)}</strong><div class="small">${j.attention?"Needs attention":"On track"}</div></div>
+        <div><strong>${escapeHTML(displayDeadline(j))}</strong></div>
+        <div><strong>${escapeHTML(savedLabel(j))}</strong></div>
+        <div><strong>${escapeHTML(j.next)}</strong><div class="small">${jobNeedsAttention(j)?"Needs attention":"On track"}</div></div>
       </div>
     `).join("")}
   `;
@@ -674,10 +863,11 @@ function openJob(id){
   document.getElementById("detailStatus").className=`status-pill ${statusClass(j.status)}`;
   document.getElementById("detailStatus").textContent=j.status;
   document.getElementById("detailStatusSelect").value=j.status;
+  document.getElementById("detailPriority").hidden=!j.highPriority;
   document.getElementById("detailRole").textContent=j.role;
   document.getElementById("detailCompany").textContent=[j.company,j.city,j.function,j.industry].filter(Boolean).join(" · ");
-  document.getElementById("detailSaved").textContent=j.saved;
-  document.getElementById("detailDeadline").textContent=j.deadline;
+  document.getElementById("detailSaved").textContent=savedLabel(j);
+  document.getElementById("detailDeadline").textContent=displayDeadline(j);
   document.getElementById("detailSource").textContent=j.source;
   document.getElementById("detailComp").textContent=j.comp;
   document.getElementById("detailNotes").value=j.notes || "";
@@ -712,7 +902,7 @@ function openJob(id){
       j.timeline.unshift(normalizeTimelineEntry({
         title:"Contact removed",
         detail:removed?.name || "Contact",
-        date:new Date().toISOString().slice(0,10),
+        date:localDateISO(),
         type:"Networking"
       }));
       persist();
@@ -786,7 +976,7 @@ document.getElementById("detailStatusSelect").onchange=e=>{
   j.timeline.unshift(normalizeTimelineEntry({
     title:"Status updated",
     detail:`${old} → ${j.status}`,
-    date:new Date().toISOString().slice(0,10),
+    date:localDateISO(),
     type:"Application"
   }));
   persist();
@@ -897,7 +1087,8 @@ function showJobModal(job=null,initialUrl=""){
   renderFunctionSuggestions();
   document.getElementById("fFunction").value=job?.function || "";
   document.getElementById("fStatus").value=job?.status || "Saved";
-  document.getElementById("fDeadline").value=job?.deadline || "";
+  document.getElementById("fDeadline").value=job?.deadlineDate || (job ? inferDeadlineDate(job.deadline,job.createdAt) : "");
+  document.getElementById("fHighPriority").checked=Boolean(job?.highPriority);
   document.getElementById("fComp").value=job?.comp || "";
   document.getElementById("fSource").value=job?.source || inferSource(initialUrl);
   document.getElementById("fNext").value=job?.next || "";
@@ -1242,7 +1433,9 @@ document.getElementById("saveJob").onclick=()=>{
       industry:document.getElementById("fIndustry").value.trim(),
       function:document.getElementById("fFunction").value.trim(),
       status:document.getElementById("fStatus").value,
-      deadline:document.getElementById("fDeadline").value.trim() || "No deadline",
+      deadlineDate:document.getElementById("fDeadline").value,
+      deadline:document.getElementById("fDeadline").value || "No deadline",
+      highPriority:document.getElementById("fHighPriority").checked,
       comp:document.getElementById("fComp").value.trim() || "Not added",
       source:document.getElementById("fSource").value.trim() || "Manual",
       next:document.getElementById("fNext").value.trim() || "Review role",
@@ -1256,7 +1449,7 @@ document.getElementById("saveJob").onclick=()=>{
     j.timeline.unshift(normalizeTimelineEntry({
       title:"Job updated",
       detail:"Role details edited.",
-      date:new Date().toISOString().slice(0,10),
+      date:localDateISO(),
       type:"Custom"
     }));
     persist();
@@ -1277,7 +1470,10 @@ document.getElementById("saveJob").onclick=()=>{
     function:document.getElementById("fFunction").value.trim(),
     status:document.getElementById("fStatus").value,
     saved:"Just now",
-    deadline:document.getElementById("fDeadline").value.trim() || "No deadline",
+    createdAt:localDateISO(),
+    deadlineDate:document.getElementById("fDeadline").value,
+    deadline:document.getElementById("fDeadline").value || "No deadline",
+    highPriority:document.getElementById("fHighPriority").checked,
     source:document.getElementById("fSource").value.trim() || "Manual",
     comp:document.getElementById("fComp").value.trim() || "Not added",
     attention:["Saved","Applying","Interviewing","Offer"].includes(document.getElementById("fStatus").value),
@@ -1290,7 +1486,7 @@ document.getElementById("saveJob").onclick=()=>{
     timeline:[{
       title:"Saved role",
       detail:"Added to dashboard just now.",
-      date:new Date().toISOString().slice(0,10),
+      date:localDateISO(),
       type:"Application"
     }]
   });
@@ -1341,7 +1537,7 @@ document.getElementById("saveContact").onclick=()=>{
   j.timeline.unshift(normalizeTimelineEntry({
     title:"Contact added",
     detail:name,
-    date:new Date().toISOString().slice(0,10),
+    date:localDateISO(),
     type:"Networking"
   }));
   if(document.getElementById("cFollow").value) j.attention=true;
@@ -1363,7 +1559,7 @@ function showTimelineModal(mode="activity"){
   timelineMode=mode;
   document.getElementById("timelineModalTitle").textContent=mode==="next" ? "Update next action" : "Add activity";
   document.getElementById("tType").value=mode==="next" ? "Custom" : "Application";
-  document.getElementById("tDate").value=new Date().toISOString().slice(0,10);
+  document.getElementById("tDate").value=localDateISO();
   document.getElementById("tTitle").value=mode==="next" ? j.next : "";
   document.getElementById("tDetail").value=mode==="next" ? j.nextDetail : "";
   document.getElementById("tSetNext").checked=mode==="next";
@@ -1613,6 +1809,7 @@ function refreshDashboard(){
   safeRender("city chart failed",()=>renderDonut("city","cityDonut","cityLegend","cityTotal"));
   safeRender("industry chart failed",()=>renderDonut("industry","industryDonut","industryLegend","industryTotal"));
   safeRender("quick links failed",renderQuickLinks);
+  safeRender("high priority failed",renderHighPriority);
   safeRender("function suggestions failed",renderFunctionSuggestions);
 }
 
