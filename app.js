@@ -189,7 +189,10 @@ function urgentTasksForJob(job){
   // should no longer keep the job in the urgent bucket.
   if(["Saved","Applying"].includes(job.status)){
     const applicationDeadline=deadlineDateForJob(job);
-    if(applicationDeadline){
+    const sameAsNextAction = applicationDeadline && nextDue &&
+      localDateISO(applicationDeadline)===localDateISO(nextDue);
+
+    if(applicationDeadline && !sameAsNextAction){
       const days=dayDifference(localToday(),applicationDeadline);
       if(days<=5){
         tasks.push({
@@ -220,6 +223,63 @@ function dueTiming(days){
   if(days===0) return "today";
   if(days===1) return "tomorrow";
   return `in ${days} days`;
+}
+
+function taskDueLabel(task){
+  const date=task.dueDate.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  if(task.days<0){
+    const past=Math.abs(task.days);
+    return `Past due · ${date}${past ? ` · ${past} day${past===1?"":"s"}` : ""}`;
+  }
+  if(task.days===0) return `Due today · ${date}`;
+  if(task.days===1) return `Due tomorrow · ${date}`;
+  return `Due in ${task.days} days · ${date}`;
+}
+
+function renderUrgentTasks(){
+  const tasks=urgentTasks();
+  const count=document.getElementById("urgentTaskCount");
+  const list=document.getElementById("urgentTaskList");
+  if(!count || !list) return;
+
+  count.textContent=`${tasks.length} task${tasks.length===1?"":"s"}`;
+
+  if(!tasks.length){
+    list.innerHTML=`
+      <div class="task-empty">
+        <h3>Nothing needs attention right now</h3>
+        <p>No tracked task or application deadline is due within the next five days.</p>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML=tasks.map((task,index)=>{
+    const detail=task.type==="next"
+      ? (task.job.nextDetail || "")
+      : "Application deadline";
+
+    return `
+      <button type="button" class="task-row ${task.days<0?"task-past-due":""}" data-task-index="${index}">
+        <div class="task-main">
+          <div class="task-name">${escapeHTML(task.label)}</div>
+          <div class="task-job">${escapeHTML(task.job.company)} · ${escapeHTML(task.job.role)}</div>
+          ${detail && detail!==task.label ? `<div class="task-detail">${escapeHTML(detail)}</div>` : ""}
+        </div>
+        <div class="task-meta">
+          <span class="task-due ${task.days<0?"past":task.days===0?"today":""}">${escapeHTML(taskDueLabel(task))}</span>
+          <span class="task-arrow">→</span>
+        </div>
+      </button>
+    `;
+  }).join("");
+
+  list.querySelectorAll("[data-task-index]").forEach(row=>{
+    row.onclick=()=>{
+      const task=tasks[Number(row.dataset.taskIndex)];
+      if(task) openJob(task.job.id,"tasks");
+    };
+  });
 }
 
 function jobNeedsAttention(job){
@@ -303,6 +363,7 @@ let activeStatusFilter = "All";
 let activeDimensionFilter = null;
 let activeUrgentJobIds = null;
 let activeJobId = null;
+let detailReturnPage = "jobs";
 let editingJobId = null;
 let editingShortcuts = false;
 let currentUser = null;
@@ -413,6 +474,7 @@ function go(page){
 
   // Render after the destination is already visible.
   if(page==="dashboard") safeRender("dashboard render failed",refreshDashboard);
+  if(page==="tasks") safeRender("tasks render failed",renderUrgentTasks);
   if(page==="jobs") safeRender("jobs render failed",renderJobs);
   if(page==="compare") safeRender("offers render failed",renderOffers);
 
@@ -632,45 +694,28 @@ function renderAttention(){
 
   if(urgent.length===1){
     const task=urgent[0];
-    const action=task.type==="next"
-      ? escapeHTML(task.label)
-      : "Application deadline";
-
     cards.push({
       cls:"deadline",
-      title:"Urgent deadline",
-      text:`<strong>${escapeHTML(task.job.company)} · ${escapeHTML(task.job.role)}</strong>: ${action} is due <strong>${dueTiming(task.days)}</strong>.`,
-      id:task.job.id,
-      urgentIds:null
+      title:"1 task needs attention",
+      text:`<strong>${escapeHTML(task.label)}</strong> for ${escapeHTML(task.job.company)} · ${escapeHTML(task.job.role)} is ${escapeHTML(taskDueLabel(task).toLowerCase())}. Click to open your task list.`,
+      id:"",
+      openTasks:true
     });
   }else if(urgent.length>1){
-    const overdue=urgent.filter(task=>task.days<0).length;
-    const upcoming=urgent.length-overdue;
-    const jobIds=[...new Set(urgent.map(task=>task.job.id))];
-
-    let summary="";
-    if(overdue && upcoming){
-      summary=`You have <strong>${urgent.length} urgent tasks</strong>: ${overdue} overdue and ${upcoming} due within the next five days across ${jobIds.length} job${jobIds.length===1?"":"s"}.`;
-    }else if(overdue){
-      summary=`You have <strong>${urgent.length} overdue tasks</strong> across ${jobIds.length} job${jobIds.length===1?"":"s"}.`;
-    }else{
-      summary=`You have <strong>${urgent.length} tasks due within the next five days</strong> across ${jobIds.length} job${jobIds.length===1?"":"s"}.`;
-    }
-
     cards.push({
       cls:"deadline",
-      title:"Urgent deadlines",
-      text:summary+" Click to view only these jobs.",
+      title:"Tasks need attention",
+      text:`You have <strong>${urgent.length} tasks</strong> that are due soon or still need action. Click to see the full task list.`,
       id:"",
-      urgentIds:jobIds
+      openTasks:true
     });
   }else{
     cards.push({
       cls:"deadline empty",
       title:"No urgent deadlines",
-      text:"Nothing is due or overdue within the next five days.",
+      text:"Nothing is due within the next five days.",
       id:"",
-      urgentIds:null
+      openTasks:false
     });
   }
 
@@ -714,10 +759,10 @@ function renderAttention(){
   }
 
   const grid=document.getElementById("attentionGrid");
-  grid.innerHTML=cards.map((card,index)=>`
+  grid.innerHTML=cards.map(card=>`
     <button class="attention ${card.cls}"
       ${card.id ? `data-attention-job="${card.id}"` : ""}
-      ${card.urgentIds?.length ? `data-urgent-card="${index}"` : ""}>
+      ${card.openTasks ? 'data-open-tasks="true"' : ""}>
       <h4>${card.title}</h4>
       <p>${card.text}</p>
     </button>
@@ -727,15 +772,8 @@ function renderAttention(){
     btn.onclick=()=>openJob(btn.dataset.attentionJob);
   });
 
-  grid.querySelectorAll("[data-urgent-card]").forEach(btn=>{
-    btn.onclick=()=>{
-      const card=cards[Number(btn.dataset.urgentCard)];
-      activeStatusFilter="All";
-      activeDimensionFilter=null;
-      activeUrgentJobIds=new Set(card.urgentIds);
-      renderJobs();
-      go("jobs");
-    };
+  grid.querySelectorAll("[data-open-tasks]").forEach(btn=>{
+    btn.onclick=()=>go("tasks");
   });
 }
 
@@ -955,11 +993,16 @@ function formatTimelineDate(date){
   return d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
 }
 
-function openJob(id){
+function openJob(id,returnPage="jobs"){
   const j=jobs.find(x=>x.id===id);
   if(!j) return;
 
   activeJobId=id;
+  detailReturnPage=returnPage;
+  const backButton=document.getElementById("backToJobs");
+  if(backButton){
+    backButton.textContent=returnPage==="tasks" ? "← Back to tasks" : "← Back to jobs";
+  }
 
   document.getElementById("detailStatus").className=`status-pill ${statusClass(j.status)}`;
   document.getElementById("detailStatus").textContent=j.status;
@@ -1065,9 +1108,15 @@ document.getElementById("clearFilter").onclick=()=>{
 };
 
 document.getElementById("backToJobs").onclick=()=>{
-  renderJobs();
-  go("jobs");
+  if(detailReturnPage==="tasks"){
+    go("tasks");
+  }else{
+    renderJobs();
+    go("jobs");
+  }
 };
+
+document.getElementById("backToDashboardFromTasks").onclick=()=>go("dashboard");
 
 document.getElementById("detailStatusSelect").onchange=e=>{
   const j=jobs.find(x=>x.id===activeJobId);
