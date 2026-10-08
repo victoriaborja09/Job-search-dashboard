@@ -226,49 +226,23 @@ function staleJobDays(job){
   return Math.max(0,dayDifference(latestJobActivityDate(job),localToday()));
 }
 
+
 function urgentTasksForJob(job){
   if(job.archived || job.status==="Closed") return [];
-
   const tasks=[];
-
-  // A next action becomes urgent five days before it is due and stays urgent
-  // after the due date until the user changes/completes the next action.
-  const nextDue=parseDateOnly(job.nextDue);
-  if(nextDue){
-    const days=dayDifference(localToday(),nextDue);
-    if(days<=5){
-      tasks.push({
-        job,
-        type:"next",
-        label:job.next || "Next action",
-        dueDate:nextDue,
-        days
-      });
-    }
+  for(const t of pendingTimelineTasks(job)){
+    const due=parseDateOnly(t.dueDate);
+    if(!due) continue;
+    const days=dayDifference(localToday(),due);
+    if(days<=5) tasks.push({job,type:"next",taskId:t.id,label:t.title,detail:t.detail,dueDate:due,days});
   }
-
-  // An application deadline matters while the job is still being pursued.
-  // Once the application has been submitted, the old application deadline
-  // should no longer keep the job in the urgent bucket.
   if(["Saved","Applying"].includes(job.status)){
-    const applicationDeadline=deadlineDateForJob(job);
-    const sameAsNextAction = applicationDeadline && nextDue &&
-      localDateISO(applicationDeadline)===localDateISO(nextDue);
-
-    if(applicationDeadline && !sameAsNextAction){
-      const days=dayDifference(localToday(),applicationDeadline);
-      if(days<=5){
-        tasks.push({
-          job,
-          type:"deadline",
-          label:"Application deadline",
-          dueDate:applicationDeadline,
-          days
-        });
-      }
+    const due=deadlineDateForJob(job);
+    if(due && !tasks.some(t=>localDateISO(t.dueDate)===localDateISO(due))){
+      const days=dayDifference(localToday(),due);
+      if(days<=5)tasks.push({job,type:"deadline",label:"Application deadline",dueDate:due,days});
     }
   }
-
   return tasks;
 }
 
@@ -299,49 +273,36 @@ function taskDueLabel(task){
   return `Due in ${task.days} days · ${date}`;
 }
 
+
 function renderUrgentTasks(){
   const tasks=urgentTasks();
-  const count=document.getElementById("urgentTaskCount");
-  const list=document.getElementById("urgentTaskList");
-  if(!count || !list) return;
-
+  const count=document.getElementById("urgentTaskCount"),list=document.getElementById("urgentTaskList");
+  if(!count || !list)return;
   count.textContent=`${tasks.length} task${tasks.length===1?"":"s"}`;
-
   if(!tasks.length){
-    list.innerHTML=`
-      <div class="task-empty">
-        <h3>Nothing needs attention right now</h3>
-        <p>No tracked task or application deadline is due within the next five days.</p>
-      </div>
-    `;
+    list.innerHTML='<div class="task-empty"><h3>Nothing needs attention right now</h3><p>No outstanding action or application deadline is due within the next five days.</p></div>';
     return;
   }
-
   list.innerHTML=tasks.map((task,index)=>{
-    const detail=task.type==="next"
-      ? (task.job.nextDetail || "")
-      : "Application deadline";
-
-    return `
-      <button type="button" class="task-row ${task.days<0?"task-past-due":""}" data-task-index="${index}">
+    const detail=task.type==="next" ? task.detail || "" : "Application deadline";
+    return `<div class="task-row ${task.days<0?"task-past-due":""}">
+      <button type="button" class="task-open" data-task-index="${index}">
         <div class="task-main">
           <div class="task-name">${escapeHTML(task.label)}</div>
           <div class="task-job">${escapeHTML(task.job.company)} · ${escapeHTML(task.job.role)}</div>
           ${detail && detail!==task.label ? `<div class="task-detail">${escapeHTML(detail)}</div>` : ""}
         </div>
-        <div class="task-meta">
-          <span class="task-due ${task.days<0?"past":task.days===0?"today":""}">${escapeHTML(taskDueLabel(task))}</span>
-          <span class="task-arrow">→</span>
-        </div>
+        <div class="task-meta"><span class="task-due ${task.days<0?"past":task.days===0?"today":""}">${escapeHTML(taskDueLabel(task))}</span><span class="task-arrow">→</span></div>
       </button>
-    `;
+      ${task.taskId ? `<button type="button" class="action-complete" data-task-done="${index}">✓ Complete</button>` : ""}
+    </div>`;
   }).join("");
-
-  list.querySelectorAll("[data-task-index]").forEach(row=>{
-    row.onclick=()=>{
-      const task=tasks[Number(row.dataset.taskIndex)];
-      if(task) openJob(task.job.id,"tasks");
-    };
+  list.querySelectorAll("[data-task-index]").forEach(el=>el.onclick=()=>{
+    const task=tasks[Number(el.dataset.taskIndex)];if(task)openJob(task.job.id,"tasks");
+  });
+  list.querySelectorAll("[data-task-done]").forEach(el=>el.onclick=()=>{
+    const task=tasks[Number(el.dataset.taskDone)];
+    if(task?.taskId)setTimelineCompletionById(task.job.id,task.taskId,true);
   });
 }
 
@@ -365,49 +326,105 @@ function normalizeContact(contact){
   };
 }
 
+
+function timelineEntryId(){
+  return "act-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10);
+}
 function normalizeTimelineEntry(entry){
-  if(Array.isArray(entry)){
-    return {title:entry[0] || "Activity", detail:entry[1] || "", date:"", type:"Custom"};
-  }
+  if(Array.isArray(entry)) entry={title:entry[0],detail:entry[1],type:"Custom"};
   return {
-    title:entry?.title || "Activity",
-    detail:entry?.detail || "",
-    date:entry?.date || "",
-    type:entry?.type || "Custom"
+    id:entry?.id || timelineEntryId(),title:entry?.title || "Activity",
+    detail:entry?.detail || "",date:entry?.date || "",type:entry?.type || "Custom",
+    isTask:Boolean(entry?.isTask),dueDate:entry?.dueDate || "",
+    completed:Boolean(entry?.completed),completedAt:entry?.completedAt || ""
   };
 }
-
+function pendingTimelineTasks(job){
+  return job.timeline.map((task,index)=>({task,index}))
+    .filter(x=>x.task.isTask && !x.task.completed)
+    .sort((a,b)=>{
+      const da=parseDateOnly(a.task.dueDate),db=parseDateOnly(b.task.dueDate);
+      if(da && db && da-db!==0) return da-db;
+      if(da && !db) return -1;
+      if(db && !da) return 1;
+      return b.index-a.index;
+    }).map(x=>x.task);
+}
+function reconcileNextAction(job,preferred=""){
+  const pending=pendingTimelineTasks(job);
+  const best=pending.find(t=>t.id===preferred) || pending[0] || null;
+  job.nextTaskId=best?.id || "";
+  job.next=best?.title || "";
+  job.nextDetail=best?.detail || "";
+  job.nextDue=best?.dueDate || "";
+}
+function markTimelineCompleted(job,item,done){
+  item.completed=done;
+  item.completedAt=done ? localDateISO() : "";
+  if(done && job.nextTaskId===item.id) reconcileNextAction(job);
+  else if(!done && !job.nextTaskId && item.isTask) reconcileNextAction(job);
+}
+function saveEditedNextAction(job,title,detail,dueDate){
+  let current=job.timeline.find(t=>t.id===job.nextTaskId && !t.completed);
+  if(!title){
+    if(current) markTimelineCompleted(job,current,true);
+    else reconcileNextAction(job);
+    return;
+  }
+  if(current){
+    Object.assign(current,{title,detail,dueDate,isTask:true,completed:false,completedAt:""});
+  }else{
+    current=normalizeTimelineEntry({title,detail,dueDate,isTask:true,date:localDateISO()});
+    job.timeline.unshift(current);
+  }
+  reconcileNextAction(job,current.id);
+}
+function setTimelineCompletionById(jobId,entryId,done){
+  const j=jobs.find(x=>x.id===jobId);
+  const t=j?.timeline.find(x=>x.id===entryId);
+  if(!t) return;
+  markTimelineCompleted(j,t,done);
+  persist();
+  updateAll();
+  if(document.getElementById("detail").classList.contains("active")) openJob(j.id,detailReturnPage);
+  else if(document.getElementById("tasks").classList.contains("active")) renderUrgentTasks();
+  toast(done?"Marked completed":"Reopened");
+}
 function normalizeJob(job){
   const createdAt=job.createdAt || inferCreatedAt(job.saved);
   const rawDeadlineDate=job.deadlineDate || job.deadline || "";
   const deadlineDate=inferDeadlineDate(rawDeadlineDate,createdAt) || inferDeadlineDate(job.deadline,createdAt);
-
-  return {
+  const timeline=Array.isArray(job.timeline)
+    ? job.timeline.map(normalizeTimelineEntry)
+    : [normalizeTimelineEntry(["Saved role","Added to dashboard."])];
+  const result={
     id:job.id || "job"+Date.now()+Math.random().toString(16).slice(2),
-    company:job.company || "New company",
-    role:job.role || "New role",
-    city:job.city || "",
-    industry:job.industry || "",
-    function:job.function || "",
-    status:job.status || "Saved",
-    saved:job.saved || "Just now",
-    createdAt,
-    deadline:deadlineDate || job.deadline || "No deadline",
-    deadlineDate,
-    highPriority:Boolean(job.highPriority),
-    source:job.source || "Manual",
-    comp:job.comp || "Not added",
-    attention:Boolean(job.attention),
-    next:job.next || "Review role",
-    nextDetail:job.nextDetail || "Add the next step you want to take.",
-    nextDue:job.nextDue || "",
-    jobUrl:job.jobUrl || "",
-    resumeUrl:job.resumeUrl || "",
-    notes:job.notes || "",
-    contacts:(job.contacts || []).map(normalizeContact),
-    timeline:Array.isArray(job.timeline) ? job.timeline.map(normalizeTimelineEntry) : [normalizeTimelineEntry(["Saved role","Added to dashboard."])],
-    archived:Boolean(job.archived)
+    company:job.company || "New company",role:job.role || "New role",
+    city:job.city || "",industry:job.industry || "",function:job.function || "",
+    status:job.status || "Saved",saved:job.saved || "Just now",createdAt,
+    deadline:deadlineDate || job.deadline || "No deadline",deadlineDate,
+    highPriority:Boolean(job.highPriority),source:job.source || "Manual",
+    comp:job.comp || "Not added",attention:Boolean(job.attention),
+    next:"",nextDetail:"",nextDue:"",nextTaskId:job.nextTaskId || "",
+    jobUrl:job.jobUrl || "",resumeUrl:job.resumeUrl || "",notes:job.notes || "",
+    contacts:(job.contacts || []).map(normalizeContact),timeline,archived:Boolean(job.archived)
   };
+  if(!Object.prototype.hasOwnProperty.call(job,"nextTaskId")){
+    const title=job.next || "Review role";
+    const detail=job.nextDetail || "Add the next step you want to take.";
+    let task=timeline.find(t=>!t.completed && t.title===title && t.detail===detail);
+    if(!task){
+      task=normalizeTimelineEntry({title,detail,dueDate:job.nextDue || "",
+        date:createdAt,type:"Custom",isTask:true});
+      timeline.unshift(task);
+    }else{
+      task.isTask=true;
+      task.dueDate=job.nextDue || "";
+    }
+    result.nextTaskId=task.id;
+  }
+  reconcileNextAction(result,result.nextTaskId);
+  return result;
 }
 
 function loadJSON(key, fallback){
@@ -864,7 +881,7 @@ function renderHighPriority(){
       </div>
       <div><span class="status-pill ${statusClass(j.status)}">${escapeHTML(j.status)}</span></div>
       <div><strong>${escapeHTML(displayDeadline(j))}</strong></div>
-      <div><strong>${escapeHTML(j.next)}</strong><div class="small">${jobNeedsAttention(j)?"Needs attention":"On track"}</div></div>
+      <div><strong>${escapeHTML(j.next || "No pending actions")}</strong><div class="small">${jobNeedsAttention(j)?"Needs attention":"On track"}</div></div>
     </div>
   `).join("");
 
@@ -1080,13 +1097,19 @@ function openJob(id,returnPage="jobs"){
   document.getElementById("detailComp").textContent=j.comp;
   document.getElementById("detailNotes").value=j.notes || "";
 
-  document.getElementById("detailNext").innerHTML=`
-    <div class="list-item">
-      <strong>${escapeHTML(j.next)}</strong>
-      ${escapeHTML(j.nextDetail)}
-      ${j.nextDue ? `<div class="next-action-due">Due ${escapeHTML(formatTimelineDate(j.nextDue))}</div>` : ""}
-    </div>
-  `;
+
+  document.getElementById("detailNext").innerHTML=j.nextTaskId ? `
+    <div class="list-item action-item">
+      <div class="action-item-content">
+        <strong>${escapeHTML(j.next)}</strong>
+        ${escapeHTML(j.nextDetail)}
+        ${j.nextDue ? `<div class="next-action-due">Due ${escapeHTML(formatTimelineDate(j.nextDue))}</div>` : ""}
+      </div>
+      <button type="button" class="action-complete" id="completeNextActionBtn">✓ Mark complete</button>
+    </div>` : '<div class="list-item action-empty">No pending actions. Add an action in the timeline to plan your next step.</div>';
+  document.getElementById("completeNextActionBtn")?.addEventListener("click",()=>{
+    setTimelineCompletionById(j.id,j.nextTaskId,true);
+  });
 
   document.getElementById("detailContacts").innerHTML=j.contacts.length
     ? j.contacts.map((contact,index)=>{
@@ -1120,17 +1143,29 @@ function openJob(id,returnPage="jobs"){
     };
   });
 
+
   document.getElementById("detailTimeline").innerHTML=j.timeline.length
     ? j.timeline.map(t=>`
-      <div class="list-item">
-        <strong>${escapeHTML(t.title)}</strong>
-        ${escapeHTML(t.detail)}
-        <div class="timeline-meta">
-          ${t.type ? escapeHTML(t.type) : "Activity"}${t.date ? ` · ${escapeHTML(formatTimelineDate(t.date))}` : ""}
+      <div class="list-item action-item ${t.completed?"completed":""}">
+        <div class="action-item-content">
+          <strong>${escapeHTML(t.title)}</strong>
+          ${escapeHTML(t.detail)}
+          <div class="timeline-meta">
+            ${escapeHTML(t.type)}${t.date ? ` · ${escapeHTML(formatTimelineDate(t.date))}` : ""}
+            ${t.isTask && t.dueDate ? ` · Due ${escapeHTML(formatTimelineDate(t.dueDate))}` : ""}
+            ${t.completed ? ` · Completed${t.completedAt ? ` ${escapeHTML(formatTimelineDate(t.completedAt))}` : ""}` : ""}
+          </div>
         </div>
-      </div>
-    `).join("")
-    : "<div class='list-item'>No timeline activity yet.</div>";
+        <div class="action-controls">
+          ${t.completed ? '<span class="action-state">✓ Done</span>' : ""}
+          <button type="button" class="action-complete ${t.completed?"reopen":""}" data-timeline-id="${escapeHTML(t.id)}" data-timeline-done="${t.completed?"false":"true"}">
+            ${t.completed?"↶ Reopen":"✓ Mark complete"}
+          </button>
+        </div>
+      </div>`).join("") : "<div class='list-item'>No timeline activity yet.</div>";
+  document.querySelectorAll("[data-timeline-id]").forEach(el=>el.onclick=()=>{
+    setTimelineCompletionById(j.id,el.dataset.timelineId,el.dataset.timelineDone==="true");
+  });
 
   setLinkCard("detailJobLink","detailJobLinkText",j.jobUrl,"Open original posting ↗","No job link added");
   setLinkCard("detailResumeLink","detailResumeLinkText",j.resumeUrl,"Open resume / document ↗","No resume link added");
@@ -1661,6 +1696,10 @@ document.getElementById("saveJob").onclick=()=>{
       resumeUrl:document.getElementById("fResumeUrl").value.trim()
     });
 
+    saveEditedNextAction(j,
+      document.getElementById("fNext").value.trim(),
+      document.getElementById("fNextDetail").value.trim(),
+      document.getElementById("fNextDue").value);
     j.attention=["Saved","Applying","Interviewing","Offer"].includes(j.status);
     j.timeline.unshift(normalizeTimelineEntry({
       title:"Job updated",
@@ -1768,60 +1807,61 @@ document.getElementById("saveContact").onclick=()=>{
 const timelineBackdrop=document.getElementById("timelineModalBackdrop");
 let timelineMode="activity";
 
+
 function showTimelineModal(mode="activity"){
   const j=jobs.find(x=>x.id===activeJobId);
-  if(!j) return;
-
+  if(!j)return;
   timelineMode=mode;
-  document.getElementById("timelineModalTitle").textContent=mode==="next" ? "Update next action" : "Add activity";
-  document.getElementById("tType").value=mode==="next" ? "Custom" : "Application";
+  document.getElementById("timelineModalTitle").textContent=mode==="next"?"Update next action":"Add activity";
+  document.getElementById("tType").value=mode==="next"?"Custom":"Application";
   document.getElementById("tDate").value=localDateISO();
-  document.getElementById("tTitle").value=mode==="next" ? j.next : "";
-  document.getElementById("tDetail").value=mode==="next" ? j.nextDetail : "";
+  document.getElementById("tTitle").value=mode==="next"?j.next:"";
+  document.getElementById("tDetail").value=mode==="next"?j.nextDetail:"";
+  document.getElementById("tTrackTask").checked=mode==="next";
   document.getElementById("tSetNext").checked=mode==="next";
-  document.getElementById("tNextDue").value=mode==="next" ? (j.nextDue || "") : "";
-  document.getElementById("saveTimeline").textContent=mode==="next" ? "Save next action" : "Add to timeline";
+  document.getElementById("tNextDue").value=mode==="next"?j.nextDue || "":"";
+  document.getElementById("saveTimeline").textContent=mode==="next"?"Save next action":"Add to timeline";
   timelineBackdrop.classList.add("show");
 }
-
+document.getElementById("tSetNext").addEventListener("change",e=>{
+  if(e.target.checked)document.getElementById("tTrackTask").checked=true;
+});
+document.getElementById("tTrackTask").addEventListener("change",e=>{
+  if(!e.target.checked)document.getElementById("tSetNext").checked=false;
+});
 document.getElementById("addTimelineBtn").onclick=()=>showTimelineModal("activity");
 document.getElementById("editNextActionBtn").onclick=()=>showTimelineModal("next");
 document.getElementById("cancelTimelineModal").onclick=()=>timelineBackdrop.classList.remove("show");
 
 document.getElementById("saveTimeline").onclick=()=>{
   const j=jobs.find(x=>x.id===activeJobId);
-  if(!j) return;
-
+  if(!j)return;
   const title=document.getElementById("tTitle").value.trim();
   const detail=document.getElementById("tDetail").value.trim();
   const date=document.getElementById("tDate").value;
   const type=document.getElementById("tType").value;
   const setNext=document.getElementById("tSetNext").checked || timelineMode==="next";
-
-  if(!title){
-    alert("Add a title first.");
-    return;
+  const isTask=document.getElementById("tTrackTask").checked || setNext;
+  const dueDate=isTask ? document.getElementById("tNextDue").value : "";
+  if(!title){alert("Add a title first.");return;}
+  let entry=timelineMode==="next"
+    ? j.timeline.find(t=>t.id===j.nextTaskId && !t.completed) : null;
+  if(entry){
+    Object.assign(entry,{title,detail,date,type,isTask:true,dueDate,completed:false,completedAt:""});
+  }else{
+    entry=normalizeTimelineEntry({title,detail,date,type,isTask,dueDate});
+    j.timeline.unshift(entry);
   }
-
-  j.timeline.unshift(normalizeTimelineEntry({
-    title,
-    detail,
-    date,
-    type
-  }));
-
   if(setNext){
-    j.next=title;
-    j.nextDetail=detail || "Next step added from the timeline.";
-    j.nextDue=document.getElementById("tNextDue").value;
-    j.attention=true;
+    reconcileNextAction(j,entry.id);j.attention=true;
+  }else if(isTask && !j.nextTaskId){
+    reconcileNextAction(j);
   }
-
   persist();
   timelineBackdrop.classList.remove("show");
   updateAll();
-  openJob(j.id);
-  toast(setNext ? "Timeline and next action updated" : "Timeline updated");
+  openJob(j.id,detailReturnPage);
+  toast(setNext?"Next action updated":isTask?"Action added to timeline":"Timeline updated");
 };
 
 document.getElementById("apolloConnectionsBtn").onclick=()=>{
