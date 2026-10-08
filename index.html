@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Job Search Command Center</title>
-<link rel="stylesheet" href="styles.css?v=20261008-1015">
+<link rel="stylesheet" href="styles.css?v=20261008-1025">
 </head>
 <body>
 <div class="auth-screen hidden" id="authScreen">
@@ -144,6 +144,22 @@
         </div>
         <div class="priority-list" id="priorityJobs"></div>
       </div>
+    </section>
+
+    <section class="section" id="tasks">
+      <div class="detail-toolbar">
+        <button class="back" id="backToDashboardFromTasks">← Back to dashboard</button>
+      </div>
+
+      <div class="topbar tasks-topbar">
+        <div>
+          <h2>Tasks needing attention</h2>
+          <p>Everything due in the next five days, plus anything that has passed its due date and still needs action. Click a task to open the corresponding job.</p>
+        </div>
+        <div class="task-count" id="urgentTaskCount">0 tasks</div>
+      </div>
+
+      <div class="task-list" id="urgentTaskList"></div>
     </section>
 
     <section class="section" id="jobs">
@@ -481,6 +497,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261008-1055"></script>
+<script src="app.js?v=20261008-1025"></script>
 </body>
 </html>
