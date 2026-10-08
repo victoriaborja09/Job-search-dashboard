@@ -6,6 +6,7 @@ const STORAGE_KEY = "job-search-dashboard-v2";
 const SHORTCUTS_KEY = "job-search-dashboard-shortcuts-v1";
 const OFFERS_KEY = "job-search-dashboard-offers-v1";
 const ONBOARDING_KEY = "job-search-dashboard-onboarding-v1";
+const PENDING_EMAIL_KEY = "job-search-dashboard-pending-email-v1";
 
 const DEFAULT_JOBS = [];
 
@@ -1621,6 +1622,46 @@ function updateAll(){
   safeRender("offers refresh failed",renderOffers);
 }
 
+function authRedirectUrl(){
+  return window.location.origin + window.location.pathname;
+}
+
+async function resendConfirmation(email){
+  const cleanEmail=(email || document.getElementById("authEmail").value).trim();
+  const message=document.getElementById("authMessage");
+  if(!cleanEmail){
+    message.textContent="Enter your email first.";
+    return;
+  }
+
+  message.textContent="Sending a fresh confirmation email…";
+  const {error}=await supabaseClient.auth.resend({
+    type:"signup",
+    email:cleanEmail,
+    options:{emailRedirectTo:authRedirectUrl()}
+  });
+
+  if(error){
+    message.textContent=error.message || "Could not resend the confirmation email.";
+    return;
+  }
+
+  localStorage.setItem(PENDING_EMAIL_KEY,cleanEmail);
+  message.innerHTML='Fresh confirmation email sent. Use the newest email only. <button type="button" class="auth-inline-btn" id="resendConfirmBtn">Resend again</button>';
+  document.getElementById("resendConfirmBtn").onclick=()=>resendConfirmation(cleanEmail);
+}
+
+function showConfirmationNeeded(email,expired=false){
+  const message=document.getElementById("authMessage");
+  const cleanEmail=(email || localStorage.getItem(PENDING_EMAIL_KEY) || "").trim();
+  if(cleanEmail) document.getElementById("authEmail").value=cleanEmail;
+  const intro=expired
+    ? "That confirmation link expired. Send yourself a fresh one and use the newest email."
+    : "Confirm your email before signing in.";
+  message.innerHTML=intro + ' <button type="button" class="auth-inline-btn" id="resendConfirmBtn">Resend confirmation</button>';
+  document.getElementById("resendConfirmBtn").onclick=()=>resendConfirmation(cleanEmail);
+}
+
 function setAuthMode(mode){
   authMode=mode;
   document.querySelectorAll("[data-auth-mode]").forEach(btn=>{
@@ -1699,25 +1740,33 @@ document.getElementById("authForm").addEventListener("submit",async event=>{
       const {data,error}=await supabaseClient.auth.signUp({
         email,
         password,
-        options:{emailRedirectTo:window.location.origin + window.location.pathname}
+        options:{emailRedirectTo:authRedirectUrl()}
       });
       if(error) throw error;
 
       if(data.session){
+        localStorage.removeItem(PENDING_EMAIL_KEY);
         await showSignedIn(data.user);
       }else{
-        message.textContent="Account created. Check your email to confirm it, then come back and sign in.";
+        localStorage.setItem(PENDING_EMAIL_KEY,email);
         setAuthMode("signin");
         document.getElementById("authEmail").value=email;
-        message.textContent="Account created. Check your email to confirm it, then come back and sign in.";
+        message.innerHTML='Account created. Check your inbox and click the confirmation link. <button type="button" class="auth-inline-btn" id="resendConfirmBtn">Resend confirmation</button>';
+        document.getElementById("resendConfirmBtn").onclick=()=>resendConfirmation(email);
       }
     }else{
       const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
       if(error) throw error;
+      localStorage.removeItem(PENDING_EMAIL_KEY);
       await showSignedIn(data.user);
     }
   }catch(error){
-    message.textContent=error?.message || "Something went wrong. Try again.";
+    if(error?.code==="email_not_confirmed" || /email not confirmed/i.test(error?.message || "")){
+      localStorage.setItem(PENDING_EMAIL_KEY,email);
+      showConfirmationNeeded(email,false);
+    }else{
+      message.textContent=error?.message || "Something went wrong. Try again.";
+    }
   }finally{
     submit.disabled=false;
     submit.textContent=authMode==="signup" ? "Create account" : "Sign in";
@@ -1748,9 +1797,28 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
 
 async function init(){
   updateAll();
+
+  const hashParams=new URLSearchParams(window.location.hash.replace(/^#/,""));
+  const queryParams=new URLSearchParams(window.location.search);
+  const authErrorCode=hashParams.get("error_code") || queryParams.get("error_code");
+
   const {data:{session}}=await supabaseClient.auth.getSession();
-  if(session?.user) await showSignedIn(session.user);
-  else showGuest();
+
+  if(session?.user){
+    localStorage.removeItem(PENDING_EMAIL_KEY);
+    history.replaceState({},document.title,window.location.pathname);
+    await showSignedIn(session.user);
+    return;
+  }
+
+  showGuest();
+
+  if(authErrorCode==="otp_expired" || authErrorCode==="otp_disabled"){
+    openAuth();
+    setAuthMode("signin");
+    showConfirmationNeeded(localStorage.getItem(PENDING_EMAIL_KEY),true);
+    history.replaceState({},document.title,window.location.pathname);
+  }
 }
 
 window.addEventListener("storage",event=>{
