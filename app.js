@@ -1631,11 +1631,25 @@ function setAuthMode(mode){
   document.getElementById("authMessage").textContent="";
 }
 
-function showSignedOut(){
+function showGuest(){
   currentUser=null;
   cloudReady=false;
+  document.getElementById("authScreen").classList.add("hidden");
+  document.getElementById("appShell").classList.remove("auth-hidden");
+  document.getElementById("accountEmail").textContent="Guest mode · saved on this device";
+  document.getElementById("accountBtn").hidden=false;
+  document.getElementById("signOutBtn").hidden=true;
+  updateAll();
+  maybeShowOnboarding();
+}
+
+function openAuth(){
   document.getElementById("authScreen").classList.remove("hidden");
-  document.getElementById("appShell").classList.add("auth-hidden");
+  setAuthMode("signup");
+}
+
+function closeAuth(){
+  document.getElementById("authScreen").classList.add("hidden");
 }
 
 async function showSignedIn(user){
@@ -1643,6 +1657,8 @@ async function showSignedIn(user){
   document.getElementById("accountEmail").textContent=user.email || "Signed in";
   document.getElementById("authScreen").classList.add("hidden");
   document.getElementById("appShell").classList.remove("auth-hidden");
+  document.getElementById("accountBtn").hidden=true;
+  document.getElementById("signOutBtn").hidden=false;
 
   try{
     await loadCloudState(user);
@@ -1657,6 +1673,13 @@ async function showSignedIn(user){
 
 document.querySelectorAll("[data-auth-mode]").forEach(btn=>{
   btn.addEventListener("click",()=>setAuthMode(btn.dataset.authMode));
+});
+
+document.getElementById("accountBtn").addEventListener("click",openAuth);
+document.getElementById("authCloseBtn").addEventListener("click",closeAuth);
+
+document.getElementById("authScreen").addEventListener("click",event=>{
+  if(event.target===document.getElementById("authScreen")) closeAuth();
 });
 
 document.getElementById("authForm").addEventListener("submit",async event=>{
@@ -1704,11 +1727,20 @@ document.getElementById("authForm").addEventListener("submit",async event=>{
 document.getElementById("signOutBtn").addEventListener("click",async()=>{
   await saveCloudState();
   await supabaseClient.auth.signOut();
-  showSignedOut();
+
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(SHORTCUTS_KEY);
+  localStorage.removeItem(OFFERS_KEY);
+  localStorage.removeItem(ONBOARDING_KEY);
+
+  jobs=clone(DEFAULT_JOBS).map(normalizeJob);
+  shortcuts=clone(DEFAULT_SHORTCUTS);
+  offers=[];
+  showGuest();
 });
 
 supabaseClient.auth.onAuthStateChange((event,session)=>{
-  if(event==="SIGNED_OUT") showSignedOut();
+  if(event==="SIGNED_OUT") showGuest();
   if(event==="SIGNED_IN" && session?.user && session.user.id!==currentUser?.id){
     showSignedIn(session.user);
   }
@@ -1718,7 +1750,7 @@ async function init(){
   updateAll();
   const {data:{session}}=await supabaseClient.auth.getSession();
   if(session?.user) await showSignedIn(session.user);
-  else showSignedOut();
+  else showGuest();
 }
 
 window.addEventListener("storage",event=>{
