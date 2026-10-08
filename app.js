@@ -1,3 +1,7 @@
+const SUPABASE_URL = "https://jnbtgmnymtxgzhfdpxhh.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_gG9G5EouVZ_pXubXags00Q_3zhl6Bvg";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
 const STORAGE_KEY = "job-search-dashboard-v2";
 const SHORTCUTS_KEY = "job-search-dashboard-shortcuts-v1";
 const OFFERS_KEY = "job-search-dashboard-offers-v1";
@@ -89,11 +93,74 @@ let activeDimensionFilter = null;
 let activeJobId = null;
 let editingJobId = null;
 let editingShortcuts = false;
+let currentUser = null;
+let cloudReady = false;
+let cloudSaveTimer = null;
+let authMode = "signin";
 
 function persist(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs));
   localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(shortcuts));
   localStorage.setItem(OFFERS_KEY, JSON.stringify(offers));
+
+  if(currentUser && cloudReady){
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer=setTimeout(()=>saveCloudState(),250);
+  }
+}
+
+async function saveCloudState(){
+  if(!currentUser) return;
+
+  const {error}=await supabaseClient
+    .from("user_state")
+    .upsert({
+      user_id:currentUser.id,
+      jobs,
+      shortcuts,
+      offers,
+      onboarding_complete:localStorage.getItem(ONBOARDING_KEY)==="true"
+    },{onConflict:"user_id"});
+
+  if(error){
+    console.error("Cloud save failed",error);
+    toast("Could not sync changes");
+  }
+}
+
+async function loadCloudState(user){
+  cloudReady=false;
+
+  const {data,error}=await supabaseClient
+    .from("user_state")
+    .select("jobs,shortcuts,offers,onboarding_complete")
+    .eq("user_id",user.id)
+    .maybeSingle();
+
+  if(error){
+    console.error("Cloud load failed",error);
+    throw error;
+  }
+
+  if(data){
+    jobs=(Array.isArray(data.jobs)?data.jobs:[]).map(normalizeJob);
+    shortcuts=Array.isArray(data.shortcuts)?data.shortcuts:clone(DEFAULT_SHORTCUTS);
+    offers=Array.isArray(data.offers)?data.offers:[];
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(jobs));
+    localStorage.setItem(SHORTCUTS_KEY,JSON.stringify(shortcuts));
+    localStorage.setItem(OFFERS_KEY,JSON.stringify(offers));
+    if(data.onboarding_complete) localStorage.setItem(ONBOARDING_KEY,"true");
+  }else{
+    await supabaseClient.from("user_state").insert({
+      user_id:user.id,
+      jobs,
+      shortcuts,
+      offers,
+      onboarding_complete:localStorage.getItem(ONBOARDING_KEY)==="true"
+    });
+  }
+
+  cloudReady=true;
 }
 
 function toast(message){
@@ -1554,9 +1621,104 @@ function updateAll(){
   safeRender("offers refresh failed",renderOffers);
 }
 
-function init(){
+function setAuthMode(mode){
+  authMode=mode;
+  document.querySelectorAll("[data-auth-mode]").forEach(btn=>{
+    btn.classList.toggle("active",btn.dataset.authMode===mode);
+  });
+  document.getElementById("authSubmit").textContent=mode==="signup" ? "Create account" : "Sign in";
+  document.getElementById("authPassword").autocomplete=mode==="signup" ? "new-password" : "current-password";
+  document.getElementById("authMessage").textContent="";
+}
+
+function showSignedOut(){
+  currentUser=null;
+  cloudReady=false;
+  document.getElementById("authScreen").classList.remove("hidden");
+  document.getElementById("appShell").classList.add("auth-hidden");
+}
+
+async function showSignedIn(user){
+  currentUser=user;
+  document.getElementById("accountEmail").textContent=user.email || "Signed in";
+  document.getElementById("authScreen").classList.add("hidden");
+  document.getElementById("appShell").classList.remove("auth-hidden");
+
+  try{
+    await loadCloudState(user);
+  }catch{
+    toast("Using this device's saved data for now");
+    cloudReady=true;
+  }
+
   updateAll();
   maybeShowOnboarding();
+}
+
+document.querySelectorAll("[data-auth-mode]").forEach(btn=>{
+  btn.addEventListener("click",()=>setAuthMode(btn.dataset.authMode));
+});
+
+document.getElementById("authForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+
+  const email=document.getElementById("authEmail").value.trim();
+  const password=document.getElementById("authPassword").value;
+  const message=document.getElementById("authMessage");
+  const submit=document.getElementById("authSubmit");
+
+  message.textContent="";
+  submit.disabled=true;
+  submit.textContent=authMode==="signup" ? "Creating account…" : "Signing in…";
+
+  try{
+    if(authMode==="signup"){
+      const {data,error}=await supabaseClient.auth.signUp({
+        email,
+        password,
+        options:{emailRedirectTo:"https://victoriaborja09.github.io/Job-search-dashboard/"}
+      });
+      if(error) throw error;
+
+      if(data.session){
+        await showSignedIn(data.user);
+      }else{
+        message.textContent="Account created. Check your email to confirm it, then come back and sign in.";
+        setAuthMode("signin");
+        document.getElementById("authEmail").value=email;
+        message.textContent="Account created. Check your email to confirm it, then come back and sign in.";
+      }
+    }else{
+      const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+      if(error) throw error;
+      await showSignedIn(data.user);
+    }
+  }catch(error){
+    message.textContent=error?.message || "Something went wrong. Try again.";
+  }finally{
+    submit.disabled=false;
+    submit.textContent=authMode==="signup" ? "Create account" : "Sign in";
+  }
+});
+
+document.getElementById("signOutBtn").addEventListener("click",async()=>{
+  await saveCloudState();
+  await supabaseClient.auth.signOut();
+  showSignedOut();
+});
+
+supabaseClient.auth.onAuthStateChange((event,session)=>{
+  if(event==="SIGNED_OUT") showSignedOut();
+  if(event==="SIGNED_IN" && session?.user && session.user.id!==currentUser?.id){
+    showSignedIn(session.user);
+  }
+});
+
+async function init(){
+  updateAll();
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(session?.user) await showSignedIn(session.user);
+  else showSignedOut();
 }
 
 window.addEventListener("storage",event=>{
@@ -1568,4 +1730,5 @@ window.addEventListener("storage",event=>{
   }
 });
 
+setAuthMode("signin");
 init();
