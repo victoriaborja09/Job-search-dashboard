@@ -557,3 +557,48 @@ a{color:inherit}
   cursor:pointer;
 }
 .auth-inline-btn:hover{opacity:.78}
+
+/* Priority jobs + time-based attention */
+.priority-panel{margin-top:16px}
+.priority-list{display:grid;gap:9px;margin-top:16px}
+.priority-job{
+  grid-template-columns:1.25fr 1fr .75fr .9fr 1.2fr;
+  background:#fff;
+}
+.priority-job .small:first-of-type{color:#8a6836}
+.priority-empty{
+  margin-top:16px;
+  border:1px dashed var(--line);
+  border-radius:15px;
+  padding:15px;
+  color:var(--muted);
+  font-size:12px;
+  background:#fff;
+}
+.priority-pill{
+  display:inline-flex;
+  padding:6px 9px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:750;
+  background:var(--gold2);
+  color:#765520;
+  border:1px solid #e2cda7;
+}
+.detail-status-group{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.priority-checkbox-field{
+  min-height:42px;
+  align-self:end;
+  padding:0 2px;
+}
+@media(max-width:1150px){
+  .priority-job{grid-template-columns:1.3fr 1fr .8fr 1fr}
+  .priority-job > :last-child{grid-column:1/-1}
+}
+@media(max-width:850px){
+  .priority-job{grid-template-columns:1fr 1fr}
+  .priority-job > :last-child{grid-column:auto}
+}
+@media(max-width:600px){
+  .priority-job{grid-template-columns:1fr}
+}
