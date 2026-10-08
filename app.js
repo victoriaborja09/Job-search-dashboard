@@ -42,15 +42,58 @@ function localDateISO(date=new Date()){
 function parseDateOnly(value){
   const raw=String(value||"").trim();
   if(!raw) return null;
+
   const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if(iso){
     const d=new Date(Number(iso[1]),Number(iso[2])-1,Number(iso[3]));
     return Number.isNaN(d.getTime()) ? null : d;
   }
+
+  // Month/day strings without a year are intentionally NOT passed to
+  // Date.parse because browsers interpret e.g. "October 12" as year 2001.
+  if(/^[A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?$/i.test(raw) ||
+     /^\d{1,2}[\/-]\d{1,2}$/.test(raw)){
+    return null;
+  }
+
   const d=new Date(raw);
   if(Number.isNaN(d.getTime())) return null;
   d.setHours(0,0,0,0);
   return d;
+}
+
+function partialMonthDay(value,anchor){
+  const raw=String(value||"").trim();
+  if(!raw) return null;
+
+  let month=null;
+  let day=null;
+
+  const numeric=raw.match(/^(\d{1,2})[\/-](\d{1,2})$/);
+  if(numeric){
+    month=Number(numeric[1])-1;
+    day=Number(numeric[2]);
+  }else{
+    const named=raw.match(/^([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?$/i);
+    if(!named) return null;
+    const probe=new Date(`${named[1]} 1, 2020`);
+    if(Number.isNaN(probe.getTime())) return null;
+    month=probe.getMonth();
+    day=Number(named[2]);
+  }
+
+  const base=parseDateOnly(anchor) || localToday();
+  let candidate=new Date(base.getFullYear(),month,day);
+  candidate.setHours(0,0,0,0);
+
+  // If the month/day would land far in the past relative to when the job
+  // was saved, it is almost certainly a deadline in the following year.
+  if(dayDifference(candidate,base)>180){
+    candidate=new Date(base.getFullYear()+1,month,day);
+    candidate.setHours(0,0,0,0);
+  }
+
+  return candidate;
 }
 
 function dayDifference(from,to){
@@ -74,7 +117,24 @@ function inferCreatedAt(saved){
 function inferDeadlineDate(deadline,createdAt){
   const raw=String(deadline||"").trim();
   if(!raw || /^no deadline$/i.test(raw)) return "";
-  if(/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+  if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){
+    const parsed=parseDateOnly(raw);
+    const anchor=parseDateOnly(createdAt);
+
+    // Repair dates previously mis-parsed by the browser as year 2001.
+    if(parsed && anchor && parsed.getFullYear()<anchor.getFullYear()-1){
+      let repaired=new Date(anchor.getFullYear(),parsed.getMonth(),parsed.getDate());
+      repaired.setHours(0,0,0,0);
+      if(dayDifference(repaired,anchor)>180){
+        repaired=new Date(anchor.getFullYear()+1,parsed.getMonth(),parsed.getDate());
+        repaired.setHours(0,0,0,0);
+      }
+      return localDateISO(repaired);
+    }
+
+    return raw;
+  }
 
   const relative=raw.match(/in\s+(\d+)\s+day/i);
   if(relative){
@@ -82,6 +142,9 @@ function inferDeadlineDate(deadline,createdAt){
     base.setDate(base.getDate()+Number(relative[1]));
     return localDateISO(base);
   }
+
+  const partial=partialMonthDay(raw,createdAt);
+  if(partial) return localDateISO(partial);
 
   const parsed=parseDateOnly(raw);
   return parsed ? localDateISO(parsed) : "";
@@ -316,7 +379,8 @@ function normalizeTimelineEntry(entry){
 
 function normalizeJob(job){
   const createdAt=job.createdAt || inferCreatedAt(job.saved);
-  const deadlineDate=job.deadlineDate || inferDeadlineDate(job.deadline,createdAt);
+  const rawDeadlineDate=job.deadlineDate || job.deadline || "";
+  const deadlineDate=inferDeadlineDate(rawDeadlineDate,createdAt) || inferDeadlineDate(job.deadline,createdAt);
 
   return {
     id:job.id || "job"+Date.now()+Math.random().toString(16).slice(2),
@@ -328,7 +392,7 @@ function normalizeJob(job){
     status:job.status || "Saved",
     saved:job.saved || "Just now",
     createdAt,
-    deadline:job.deadline || "No deadline",
+    deadline:deadlineDate || job.deadline || "No deadline",
     deadlineDate,
     highPriority:Boolean(job.highPriority),
     source:job.source || "Manual",
