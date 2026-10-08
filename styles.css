@@ -545,3 +545,15 @@ a{color:inherit}
   border-color:var(--accent);
   color:#fff;
 }
+
+.auth-inline-btn{
+  border:0;
+  background:transparent;
+  color:var(--accent);
+  font:inherit;
+  font-weight:750;
+  padding:0;
+  text-decoration:underline;
+  cursor:pointer;
+}
+.auth-inline-btn:hover{opacity:.78}
