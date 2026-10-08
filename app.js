@@ -1676,7 +1676,7 @@ document.getElementById("authForm").addEventListener("submit",async event=>{
       const {data,error}=await supabaseClient.auth.signUp({
         email,
         password,
-        options:{emailRedirectTo:"https://victoriaborja09.github.io/Job-search-dashboard/"}
+        options:{emailRedirectTo:window.location.origin + window.location.pathname}
       });
       if(error) throw error;
 
