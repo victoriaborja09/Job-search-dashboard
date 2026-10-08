@@ -511,3 +511,37 @@ a{color:inherit}
 @media(max-width:850px){
   .account-panel{position:static;margin-top:20px}
 }
+
+/* Guest-first account experience */
+.auth-screen{
+  position:fixed;
+  inset:0;
+  z-index:120;
+  background:rgba(30,25,20,.34);
+  backdrop-filter:blur(8px);
+}
+.auth-card{
+  position:relative;
+}
+.auth-close{
+  position:absolute;
+  top:16px;
+  right:17px;
+  width:34px;
+  height:34px;
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:999px;
+  color:var(--muted);
+  font-size:21px;
+  line-height:1;
+}
+.auth-close:hover{
+  color:var(--text);
+  border-color:#c9b9aa;
+}
+.account-primary{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+}
