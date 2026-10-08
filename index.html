@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Job Search Command Center</title>
-<link rel="stylesheet" href="styles.css?v=20261007-2350">
+<link rel="stylesheet" href="styles.css?v=20261008-1015">
 </head>
 <body>
 <div class="auth-screen hidden" id="authScreen">
@@ -134,6 +134,16 @@
           <div class="quick-links" id="quickLinks"></div>
         </div>
       </div>
+
+      <div class="panel priority-panel">
+        <div class="panel-heading-row">
+          <div>
+            <h3>High priority</h3>
+            <div class="panel-sub">The opportunities you want to keep front and center.</div>
+          </div>
+        </div>
+        <div class="priority-list" id="priorityJobs"></div>
+      </div>
     </section>
 
     <section class="section" id="jobs">
@@ -168,7 +178,10 @@
       <div class="detail-shell">
         <div class="detail-main">
           <div class="detail-topline">
-            <span class="status-pill status-saved" id="detailStatus">Saved</span>
+            <div class="detail-status-group">
+              <span class="status-pill status-saved" id="detailStatus">Saved</span>
+              <span class="priority-pill" id="detailPriority" hidden>High priority</span>
+            </div>
             <select class="status-select" id="detailStatusSelect" aria-label="Update application status">
               <option>Saved</option>
               <option>Applying</option>
@@ -351,7 +364,10 @@
         <datalist id="functionSuggestions"></datalist>
       </div>
       <div class="field"><label>Status</label><select id="fStatus"><option>Saved</option><option>Applying</option><option>Applied</option><option>Interviewing</option><option>Offer</option><option>Closed</option></select></div>
-      <div class="field"><label>Deadline</label><input id="fDeadline" placeholder="In 14 days"></div>
+      <div class="field"><label>Deadline</label><input id="fDeadline" type="date"></div>
+      <div class="field checkbox-field priority-checkbox-field">
+        <label class="checkbox-label"><input id="fHighPriority" type="checkbox"> Mark as high priority</label>
+      </div>
       <div class="field"><label>Compensation</label><input id="fComp" placeholder="$120K–$140K"></div>
       <div class="field"><label>Source</label><input id="fSource" placeholder="LinkedIn"></div>
       <div class="field"><label>Next action</label><input id="fNext" placeholder="Submit application"></div>
@@ -377,8 +393,8 @@
       <div class="field"><label>Name</label><input id="cName"></div>
       <div class="field"><label>Role / relationship</label><input id="cRole" placeholder="Product Manager"></div>
       <div class="field full"><label>Email or LinkedIn</label><input id="cLink" placeholder="email@company.com or https://linkedin.com/..."></div>
-      <div class="field"><label>Last contacted</label><input id="cLast" type="date"></div>
-      <div class="field"><label>Follow up</label><input id="cFollow" type="date"></div>
+      <div class="field"><label>Email / message sent</label><input id="cLast" type="date"></div>
+      <div class="field"><label>Follow-up date (optional)</label><input id="cFollow" type="date"></div>
     </div>
 
     <div class="modal-actions">
@@ -465,6 +481,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261007-2350"></script>
+<script src="app.js?v=20261008-1015"></script>
 </body>
 </html>
