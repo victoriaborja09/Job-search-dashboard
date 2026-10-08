@@ -163,15 +163,69 @@ function staleJobDays(job){
   return Math.max(0,dayDifference(latestJobActivityDate(job),localToday()));
 }
 
+function urgentTasksForJob(job){
+  if(job.archived || job.status==="Closed") return [];
+
+  const tasks=[];
+
+  // A next action becomes urgent five days before it is due and stays urgent
+  // after the due date until the user changes/completes the next action.
+  const nextDue=parseDateOnly(job.nextDue);
+  if(nextDue){
+    const days=dayDifference(localToday(),nextDue);
+    if(days<=5){
+      tasks.push({
+        job,
+        type:"next",
+        label:job.next || "Next action",
+        dueDate:nextDue,
+        days
+      });
+    }
+  }
+
+  // An application deadline matters while the job is still being pursued.
+  // Once the application has been submitted, the old application deadline
+  // should no longer keep the job in the urgent bucket.
+  if(["Saved","Applying"].includes(job.status)){
+    const applicationDeadline=deadlineDateForJob(job);
+    if(applicationDeadline){
+      const days=dayDifference(localToday(),applicationDeadline);
+      if(days<=5){
+        tasks.push({
+          job,
+          type:"deadline",
+          label:"Application deadline",
+          dueDate:applicationDeadline,
+          days
+        });
+      }
+    }
+  }
+
+  return tasks;
+}
+
+function urgentTasks(){
+  return activeJobs()
+    .flatMap(urgentTasksForJob)
+    .sort((a,b)=>a.dueDate-b.dueDate);
+}
+
+function dueTiming(days){
+  if(days<0){
+    const overdue=Math.abs(days);
+    return overdue===1 ? "1 day overdue" : `${overdue} days overdue`;
+  }
+  if(days===0) return "today";
+  if(days===1) return "tomorrow";
+  return `in ${days} days`;
+}
+
 function jobNeedsAttention(job){
-  const deadline=deadlineDays(job);
-  if(Number.isFinite(deadline) && deadline>=0 && deadline<=5) return true;
+  if(urgentTasksForJob(job).length) return true;
   if(contactFollowUpInfo(job)) return true;
   if(staleJobDays(job)>=7) return true;
-
-  const nextDue=parseDateOnly(job.nextDue);
-  if(nextDue && nextDue<=localToday()) return true;
-
   return false;
 }
 
@@ -247,6 +301,7 @@ let offers = loadJSON(OFFERS_KEY, []);
 
 let activeStatusFilter = "All";
 let activeDimensionFilter = null;
+let activeUrgentJobIds = null;
 let activeJobId = null;
 let editingJobId = null;
 let editingShortcuts = false;
@@ -371,6 +426,7 @@ document.querySelectorAll(".nav button").forEach(button=>{
 
     const page=button.dataset.page;
     if(page==="jobs"){
+      activeUrgentJobIds=null;
       activeStatusFilter="All";
       activeDimensionFilter=null;
       syncChips();
@@ -427,6 +483,7 @@ function donutPath(cx,cy,outerR,innerR,startAngle,endAngle){
 
 function applyDimensionFilter(key,value){
   activeStatusFilter="All";
+  activeUrgentJobIds=null;
   activeDimensionFilter={key,value};
   syncChips();
   renderJobs();
@@ -559,11 +616,7 @@ function safeURL(url){
 
 function renderAttention(){
   const current=activeJobs();
-
-  const deadlineEntry=current
-    .map(job=>({job,days:deadlineDays(job)}))
-    .filter(item=>Number.isFinite(item.days) && item.days>=0 && item.days<=5)
-    .sort((a,b)=>a.days-b.days)[0];
+  const urgent=urgentTasks();
 
   const followup=current
     .map(job=>contactFollowUpInfo(job))
@@ -577,20 +630,47 @@ function renderAttention(){
 
   const cards=[];
 
-  if(deadlineEntry){
-    const when=deadlineEntry.days===0 ? "today" : deadlineEntry.days===1 ? "tomorrow" : `in ${deadlineEntry.days} days`;
+  if(urgent.length===1){
+    const task=urgent[0];
+    const action=task.type==="next"
+      ? escapeHTML(task.label)
+      : "Application deadline";
+
     cards.push({
       cls:"deadline",
       title:"Urgent deadline",
-      text:`<strong>${escapeHTML(deadlineEntry.job.company)} · ${escapeHTML(deadlineEntry.job.role)}</strong> is due <strong>${when}</strong>.`,
-      id:deadlineEntry.job.id
+      text:`<strong>${escapeHTML(task.job.company)} · ${escapeHTML(task.job.role)}</strong>: ${action} is due <strong>${dueTiming(task.days)}</strong>.`,
+      id:task.job.id,
+      urgentIds:null
+    });
+  }else if(urgent.length>1){
+    const overdue=urgent.filter(task=>task.days<0).length;
+    const upcoming=urgent.length-overdue;
+    const jobIds=[...new Set(urgent.map(task=>task.job.id))];
+
+    let summary="";
+    if(overdue && upcoming){
+      summary=`You have <strong>${urgent.length} urgent tasks</strong>: ${overdue} overdue and ${upcoming} due within the next five days across ${jobIds.length} job${jobIds.length===1?"":"s"}.`;
+    }else if(overdue){
+      summary=`You have <strong>${urgent.length} overdue tasks</strong> across ${jobIds.length} job${jobIds.length===1?"":"s"}.`;
+    }else{
+      summary=`You have <strong>${urgent.length} tasks due within the next five days</strong> across ${jobIds.length} job${jobIds.length===1?"":"s"}.`;
+    }
+
+    cards.push({
+      cls:"deadline",
+      title:"Urgent deadlines",
+      text:summary+" Click to view only these jobs.",
+      id:"",
+      urgentIds:jobIds
     });
   }else{
     cards.push({
       cls:"deadline empty",
       title:"No urgent deadlines",
-      text:"Nothing is due within the next five days.",
-      id:""
+      text:"Nothing is due or overdue within the next five days.",
+      id:"",
+      urgentIds:null
     });
   }
 
@@ -634,8 +714,10 @@ function renderAttention(){
   }
 
   const grid=document.getElementById("attentionGrid");
-  grid.innerHTML=cards.map(card=>`
-    <button class="attention ${card.cls}" ${card.id ? `data-attention-job="${card.id}"` : ""}>
+  grid.innerHTML=cards.map((card,index)=>`
+    <button class="attention ${card.cls}"
+      ${card.id ? `data-attention-job="${card.id}"` : ""}
+      ${card.urgentIds?.length ? `data-urgent-card="${index}"` : ""}>
       <h4>${card.title}</h4>
       <p>${card.text}</p>
     </button>
@@ -643,6 +725,17 @@ function renderAttention(){
 
   grid.querySelectorAll("[data-attention-job]").forEach(btn=>{
     btn.onclick=()=>openJob(btn.dataset.attentionJob);
+  });
+
+  grid.querySelectorAll("[data-urgent-card]").forEach(btn=>{
+    btn.onclick=()=>{
+      const card=cards[Number(btn.dataset.urgentCard)];
+      activeStatusFilter="All";
+      activeDimensionFilter=null;
+      activeUrgentJobIds=new Set(card.urgentIds);
+      renderJobs();
+      go("jobs");
+    };
   });
 }
 
@@ -716,13 +809,15 @@ function renderQuickLinks(){
 
 function filteredJobs(){
   return activeJobs().filter(j=>{
+    const urgentOK=!activeUrgentJobIds || activeUrgentJobIds.has(j.id);
+
     const statusOK = activeStatusFilter==="All" ||
       (activeStatusFilter==="Attention" ? jobNeedsAttention(j) : j.status===activeStatusFilter);
 
     const dimensionOK = !activeDimensionFilter ||
       String(j[activeDimensionFilter.key] || "").trim()===activeDimensionFilter.value;
 
-    return statusOK && dimensionOK;
+    return urgentOK && statusOK && dimensionOK;
   });
 }
 
@@ -747,12 +842,14 @@ function renderFilterChips(){
   `;
 
   container.querySelector("[data-filter-all]")?.addEventListener("click",()=>{
+    activeUrgentJobIds=null;
     activeDimensionFilter=null;
     renderJobs();
   });
 
   container.querySelectorAll("[data-filter-key]").forEach(button=>{
     button.addEventListener("click",()=>{
+      activeUrgentJobIds=null;
       activeDimensionFilter={
         key:button.dataset.filterKey,
         value:button.dataset.filterValue
@@ -784,20 +881,24 @@ function renderJobs(){
   const list=filteredJobs();
   document.getElementById("visibleCount").textContent=`${list.length} role${list.length===1?"":"s"} shown`;
 
-  const title=activeDimensionFilter
-    ? `${activeDimensionFilter.value} jobs`
-    : activeStatusFilter==="All"
-      ? "All jobs"
-      : activeStatusFilter==="Attention"
-        ? "Needs attention"
-        : `${activeStatusFilter} jobs`;
+  const title=activeUrgentJobIds
+    ? "Urgent deadlines"
+    : activeDimensionFilter
+      ? `${activeDimensionFilter.value} jobs`
+      : activeStatusFilter==="All"
+        ? "All jobs"
+        : activeStatusFilter==="Attention"
+          ? "Needs attention"
+          : `${activeStatusFilter} jobs`;
 
   document.getElementById("jobsTitle").textContent=title;
-  document.getElementById("jobsSubtitle").textContent=activeDimensionFilter
-    ? `Showing jobs where ${activeDimensionFilter.key} is ${activeDimensionFilter.value}. Click any role to open its full page.`
-    : activeStatusFilter==="Attention"
-      ? "Roles with a deadline, follow-up, stale status, or another next action."
-      : "Every opportunity in one place. Click any role to open its full page.";
+  document.getElementById("jobsSubtitle").textContent=activeUrgentJobIds
+    ? "Only jobs with tasks or application deadlines due or overdue within the five-day urgent window."
+    : activeDimensionFilter
+      ? `Showing jobs where ${activeDimensionFilter.key} is ${activeDimensionFilter.value}. Click any role to open its full page.`
+      : activeStatusFilter==="Attention"
+        ? "Roles with a deadline, follow-up, stale status, or another next action."
+        : "Every opportunity in one place. Click any role to open its full page.";
 
   const table=document.getElementById("jobsTable");
 
@@ -947,6 +1048,7 @@ function setLinkCard(cardId,textId,url,activeText,inactiveText){
 }
 
 document.querySelectorAll(".metric").forEach(m=>m.onclick=()=>{
+  activeUrgentJobIds=null;
   activeStatusFilter=m.dataset.filter;
   activeDimensionFilter=null;
   syncChips();
@@ -955,6 +1057,7 @@ document.querySelectorAll(".metric").forEach(m=>m.onclick=()=>{
 });
 
 document.getElementById("clearFilter").onclick=()=>{
+  activeUrgentJobIds=null;
   activeStatusFilter="All";
   activeDimensionFilter=null;
   syncChips();
