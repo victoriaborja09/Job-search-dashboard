@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Job Search Command Center</title>
-<link rel="stylesheet" href="styles.css?v=20261008-1025">
+<link rel="stylesheet" href="styles.css?v=20261008-1530">
 </head>
 <body>
 <div class="auth-screen hidden" id="authScreen">
@@ -423,7 +423,7 @@
 <div class="modal-backdrop" id="timelineModalBackdrop">
   <div class="modal small-modal">
     <h3 id="timelineModalTitle">Add activity</h3>
-    <p>Keep the recruiting process current as things happen.</p>
+    <p>Log an update or add an action to your to-do queue. Completed actions remain in the timeline for your records.</p>
 
     <div class="form-grid">
       <div class="field">
@@ -443,9 +443,12 @@
       <div class="field full"><label>Title</label><input id="tTitle" placeholder="Invited to HireVue"></div>
       <div class="field full"><label>Details</label><input id="tDetail" placeholder="Complete by Friday"></div>
       <div class="field full checkbox-field">
+        <label class="checkbox-label"><input id="tTrackTask" type="checkbox"> Track as an action to complete</label>
+      </div>
+      <div class="field full checkbox-field">
         <label class="checkbox-label"><input id="tSetNext" type="checkbox"> Make this my next action</label>
       </div>
-      <div class="field"><label>Next action due</label><input id="tNextDue" type="date"></div>
+      <div class="field"><label>Action due</label><input id="tNextDue" type="date"></div>
     </div>
 
     <div class="modal-actions">
@@ -497,6 +500,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261008-1038"></script>
+<script src="app.js?v=20261008-1530"></script>
 </body>
 </html>
