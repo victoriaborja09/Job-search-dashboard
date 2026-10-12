@@ -5,6 +5,8 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLI
 const STORAGE_KEY = "job-search-dashboard-v2";
 const SHORTCUTS_KEY = "job-search-dashboard-shortcuts-v1";
 const OFFERS_KEY = "job-search-dashboard-offers-v1";
+const FOLDER_COLORS_KEY = "applyfolio-folder-colors-v1";
+const PROJECTS_KEY = "applyfolio-portfolio-projects-v1";
 const ONBOARDING_KEY = "job-search-dashboard-onboarding-v1";
 const PENDING_EMAIL_KEY = "job-search-dashboard-pending-email-v1";
 
@@ -439,6 +441,7 @@ function loadJSON(key, fallback){
 let jobs = loadJSON(STORAGE_KEY, DEFAULT_JOBS).map(normalizeJob);
 let shortcuts = loadJSON(SHORTCUTS_KEY, DEFAULT_SHORTCUTS);
 let offers = loadJSON(OFFERS_KEY, []);
+let portfolioProjects = loadJSON(PROJECTS_KEY, []);
 
 let activeStatusFilter = "All";
 let activeDimensionFilter = null;
@@ -456,6 +459,7 @@ function persist(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs));
   localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(shortcuts));
   localStorage.setItem(OFFERS_KEY, JSON.stringify(offers));
+  localStorage.setItem(PROJECTS_KEY, JSON.stringify(portfolioProjects));
 
   if(currentUser && cloudReady){
     clearTimeout(cloudSaveTimer);
@@ -567,6 +571,19 @@ document.querySelectorAll(".nav button").forEach(button=>{
   button.addEventListener("click",event=>{
     event.preventDefault();
 
+    const homeAction=button.dataset.homeAction;
+    if(homeAction){
+      if(homeAction==="resources"){document.getElementById("resourcesOverlay").hidden=false;renderQuickLinks();return;}
+      if(homeAction==="portfolio"){go("dashboard");openFolder("Projects");return;}
+      go("dashboard");
+      if(homeAction==="folders") document.getElementById("homeFolders").scrollIntoView({behavior:"smooth"});
+      if(homeAction==="deadlines"){
+        const toggle=document.querySelector("#homeDeadlines .af-dropdown-header");
+        if(toggle.getAttribute("aria-expanded")!=="true") toggle.click();
+        document.getElementById("homeDeadlines").scrollIntoView({behavior:"smooth"});
+      }
+      return;
+    }
     const page=button.dataset.page;
     if(page==="jobs"){
       activeUrgentJobIds=null;
@@ -574,7 +591,6 @@ document.querySelectorAll(".nav button").forEach(button=>{
       activeDimensionFilter=null;
       syncChips();
     }
-
     go(page);
   });
 });
@@ -584,24 +600,23 @@ function activeJobs(){
 }
 
 function updateCounts(){
-  const current=activeJobs();
-  document.getElementById("savedCount").textContent=current.filter(j=>j.status==="Saved").length;
-  document.getElementById("appliedCount").textContent=current.filter(j=>j.status==="Applied").length;
-  document.getElementById("interviewCount").textContent=current.filter(j=>j.status==="Interviewing").length;
-  document.getElementById("attentionCount").textContent=current.filter(jobNeedsAttention).length;
+  document.querySelectorAll("[data-folder-count]").forEach(el=>{
+    const status=el.dataset.folderCount;
+    el.textContent=status==="Projects" ? portfolioProjects.length
+      : activeJobs().filter(job=>job.status===status).length;
+  });
 }
 
 function distribution(key){
   const counts={};
   activeJobs().forEach(j=>{
-    const value=String(j[key] || "").trim();
-    if(!value) return;
+    const value=String(j[key] || "").trim() || "Unspecified";
     counts[value]=(counts[value]||0)+1;
   });
   return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
 }
 
-const palette=["#284b59","#b98a46","#9d645a","#6a5e88","#6f8a72","#b7a89a","#4f7d8b"];
+const palette=["#a5bcd6","#f5efc6","#4d0e12","#4a2e27","#231815"];
 
 function polarPoint(cx,cy,r,angle){
   const rad=(angle-90)*Math.PI/180;
@@ -625,12 +640,7 @@ function donutPath(cx,cy,outerR,innerR,startAngle,endAngle){
 }
 
 function applyDimensionFilter(key,value){
-  activeStatusFilter="All";
-  activeUrgentJobIds=null;
-  activeDimensionFilter={key,value};
-  syncChips();
-  renderJobs();
-  go("jobs");
+  openFolder({key,value});
 }
 
 function renderDonut(key, donutId, legendId, totalId){
@@ -757,139 +767,6 @@ function safeURL(url){
   }
 }
 
-function renderAttention(){
-  const current=activeJobs();
-  const urgent=urgentTasks();
-
-  const followup=current
-    .map(job=>contactFollowUpInfo(job))
-    .filter(Boolean)
-    .sort((a,b)=>a.date-b.date)[0] || null;
-
-  const staleEntry=current
-    .map(job=>({job,days:staleJobDays(job)}))
-    .filter(item=>item.days>=7)
-    .sort((a,b)=>b.days-a.days)[0];
-
-  const cards=[];
-
-  if(urgent.length===1){
-    const task=urgent[0];
-    cards.push({
-      cls:"deadline",
-      title:"1 task needs attention",
-      text:`<strong>${escapeHTML(task.label)}</strong> for ${escapeHTML(task.job.company)} · ${escapeHTML(task.job.role)} is ${escapeHTML(taskDueLabel(task).toLowerCase())}. Click to open your task list.`,
-      id:"",
-      openTasks:true
-    });
-  }else if(urgent.length>1){
-    cards.push({
-      cls:"deadline",
-      title:"Tasks need attention",
-      text:`You have <strong>${urgent.length} tasks</strong> that are due soon or still need action. Click to see the full task list.`,
-      id:"",
-      openTasks:true
-    });
-  }else{
-    cards.push({
-      cls:"deadline empty",
-      title:"No urgent deadlines",
-      text:"Nothing is due within the next five days.",
-      id:"",
-      openTasks:false
-    });
-  }
-
-  if(followup){
-    const sentDays=followup.contact.last
-      ? dayDifference(parseDateOnly(followup.contact.last),localToday())
-      : null;
-    const timing=followup.reason==="one-week" && Number.isFinite(sentDays)
-      ? `It has been ${sentDays} day${sentDays===1?"":"s"} since your last message.`
-      : "Your planned follow-up date has arrived.";
-
-    cards.push({
-      cls:"followup",
-      title:"Follow-up due",
-      text:`<strong>${escapeHTML(followup.contact.name)}</strong> on the ${escapeHTML(followup.job.company)} role is due for a follow-up. ${timing}`,
-      id:followup.job.id
-    });
-  }else{
-    cards.push({
-      cls:"followup empty",
-      title:"No follow-ups due",
-      text:"A follow-up will surface one week after your last email or message.",
-      id:""
-    });
-  }
-
-  if(staleEntry){
-    cards.push({
-      cls:"stale",
-      title:"Application getting stale",
-      text:`<strong>${escapeHTML(staleEntry.job.company)} · ${escapeHTML(staleEntry.job.role)}</strong> has had no activity for ${staleEntry.days} days.`,
-      id:staleEntry.job.id
-    });
-  }else{
-    cards.push({
-      cls:"stale empty",
-      title:"Nothing stale",
-      text:"No saved or active applications have gone a week without activity.",
-      id:""
-    });
-  }
-
-  const grid=document.getElementById("attentionGrid");
-  grid.innerHTML=cards.map(card=>`
-    <button class="attention ${card.cls}"
-      ${card.id ? `data-attention-job="${card.id}"` : ""}
-      ${card.openTasks ? 'data-open-tasks="true"' : ""}>
-      <h4>${card.title}</h4>
-      <p>${card.text}</p>
-    </button>
-  `).join("");
-
-  grid.querySelectorAll("[data-attention-job]").forEach(btn=>{
-    btn.onclick=()=>openJob(btn.dataset.attentionJob);
-  });
-
-  grid.querySelectorAll("[data-open-tasks]").forEach(btn=>{
-    btn.onclick=()=>go("tasks");
-  });
-}
-
-function renderHighPriority(){
-  const box=document.getElementById("priorityJobs");
-  if(!box) return;
-
-  const priority=activeJobs().filter(job=>job.highPriority);
-
-  if(!priority.length){
-    box.innerHTML='<div class="priority-empty">No high-priority jobs yet. Mark one as high priority when you add or edit it.</div>';
-    return;
-  }
-
-  box.innerHTML=priority.map(j=>`
-    <div class="jobs-row job priority-job" data-priority-job="${j.id}">
-      <div>
-        <div class="job-title">${escapeHTML(j.role)}</div>
-        <div class="small">★ High priority</div>
-      </div>
-      <div>
-        <div class="job-title">${escapeHTML(j.company)}</div>
-        <div class="small">${escapeHTML(j.city)}</div>
-      </div>
-      <div><span class="status-pill ${statusClass(j.status)}">${escapeHTML(j.status)}</span></div>
-      <div><strong>${escapeHTML(displayDeadline(j))}</strong></div>
-      <div><strong>${escapeHTML(j.next || "No pending actions")}</strong><div class="small">${jobNeedsAttention(j)?"Needs attention":"On track"}</div></div>
-    </div>
-  `).join("");
-
-  box.querySelectorAll("[data-priority-job]").forEach(row=>{
-    row.onclick=()=>openJob(row.dataset.priorityJob);
-  });
-}
-
 function renderQuickLinks(){
   const box=document.getElementById("quickLinks");
   if(!box) return;
@@ -934,7 +811,7 @@ function filteredJobs(){
       (activeStatusFilter==="Attention" ? jobNeedsAttention(j) : j.status===activeStatusFilter);
 
     const dimensionOK = !activeDimensionFilter ||
-      String(j[activeDimensionFilter.key] || "").trim()===activeDimensionFilter.value;
+      (String(j[activeDimensionFilter.key] || "").trim() || "Unspecified")===activeDimensionFilter.value;
 
     return urgentOK && statusOK && dimensionOK;
   });
@@ -1082,7 +959,7 @@ function openJob(id,returnPage="jobs"){
   detailReturnPage=returnPage;
   const backButton=document.getElementById("backToJobs");
   if(backButton){
-    backButton.textContent=returnPage==="tasks" ? "← Back to tasks" : "← Back to jobs";
+    backButton.textContent=returnPage==="tasks" ? "← Back to tasks" : returnPage==="folder" ? "← Back to folder" : returnPage==="dashboard" ? "← Back to overview" : "← Back to jobs";
   }
 
   document.getElementById("detailStatus").className=`status-pill ${statusClass(j.status)}`;
@@ -1207,12 +1084,10 @@ document.getElementById("clearFilter").onclick=()=>{
 };
 
 document.getElementById("backToJobs").onclick=()=>{
-  if(detailReturnPage==="tasks"){
-    go("tasks");
-  }else{
-    renderJobs();
-    go("jobs");
-  }
+  if(detailReturnPage==="tasks") go("tasks");
+  else if(detailReturnPage==="folder"){go("dashboard");renderOpenFolder();}
+  else if(detailReturnPage==="dashboard") go("dashboard");
+  else{renderJobs();go("jobs");}
 };
 
 document.getElementById("backToDashboardFromTasks").onclick=()=>go("dashboard");
@@ -2059,13 +1934,207 @@ document.getElementById("loadSampleOffers").onclick=()=>{
   toast("Sample offers loaded");
 };
 
+
+/* Folder workspace: real application data, existing job detail/timeline and completion behavior. */
+const folderDefs=[
+  {key:"Saved",label:"Saved Jobs",original:"#a5bcd6"},
+  {key:"Applying",label:"In the Works",original:"#f5efc6"},
+  {key:"Interviewing",label:"Interviewing",original:"#4d0e12"},
+  {key:"Applied",label:"Applied",original:"#4a2e27"},
+  {key:"Projects",label:"Projects & Portfolio",original:"#231815"}
+];
+const folderSwatches=["#a5bcd6","#f5efc6","#4d0e12","#4a2e27","#231815"];
+let folderColors=loadJSON(FOLDER_COLORS_KEY,{});
+let currentFolder=null;
+let folderPage=0;
+let folderReturnReady=false;
+function folderColor(key){
+  const d=folderDefs.find(x=>x.key===key);
+  const color=folderColors[key];
+  return folderSwatches.includes(color)?color:(d?.original||folderSwatches[0]);
+}
+function folderTextColor(hex){
+  return ["#4d0e12","#4a2e27","#231815"].includes(hex)?"#fff":"#231815";
+}
+function renderFolderColors(){
+  folderDefs.forEach(folder=>{
+    const el=document.querySelector('[data-folder-key="'+folder.key+'"]');
+    if(!el) return;
+    const color=folderColor(folder.key);
+    el.style.setProperty("--folder-color",color);
+    el.style.setProperty("--folder-ink",folderTextColor(color));
+  });
+  const rows=document.getElementById("folderColorRows");
+  if(!rows || document.getElementById("folderColorPanel").hidden) return;
+  rows.innerHTML=folderDefs.map(folder=>'<div class="af-color-row"><span>'+escapeHTML(folder.label)+'</span><div class="af-color-swatches">'+
+    folderSwatches.map(color=>'<button type="button" class="af-color-swatch '+(color===folderColor(folder.key)?"selected":"")+'" style="background:'+color+';--swatch-ink:'+folderTextColor(color)+'" data-set-folder-color="'+folder.key+'" data-color="'+color+'" title="'+color+'" aria-label="Change '+escapeHTML(folder.label)+' color">'+(color===folderColor(folder.key)?"✓":"")+'</button>').join("")+'</div></div>').join("");
+  rows.querySelectorAll("[data-set-folder-color]").forEach(button=>button.onclick=()=>{
+    folderColors[button.dataset.setFolderColor]=button.dataset.color;
+    localStorage.setItem(FOLDER_COLORS_KEY,JSON.stringify(folderColors));
+    renderFolderColors();
+  });
+}
+function closeFolderColors(){document.getElementById("folderColorPanel").hidden=true;}
+document.getElementById("folderColorsBtn").onclick=()=>{
+  document.getElementById("folderColorPanel").hidden=false;renderFolderColors();
+};
+document.getElementById("closeFolderColors").onclick=closeFolderColors;
+document.getElementById("doneFolderColors").onclick=closeFolderColors;
+document.getElementById("resetFolderColors").onclick=()=>{
+  folderColors={};
+  localStorage.removeItem(FOLDER_COLORS_KEY);
+  renderFolderColors();
+};
+document.querySelectorAll("[data-open-folder]").forEach(button=>button.onclick=()=>openFolder(button.dataset.openFolder));
+function getFolderJobs(){
+  if(currentFolder==null) return [];
+  if(typeof currentFolder==="string"){
+    return currentFolder==="Projects" ? portfolioProjects : activeJobs().filter(job=>job.status===currentFolder);
+  }
+  return activeJobs().filter(job=>(String(job[currentFolder.key]||"").trim() || "Unspecified")===currentFolder.value);
+}
+function openFolder(filter){
+  currentFolder=filter;folderPage=0;folderReturnReady=true;renderOpenFolder();
+}
+function renderOpenFolder(){
+  if(currentFolder==null)return;
+  const overlay=document.getElementById("folderOverlay"),cards=document.getElementById("folderCards");
+  const records=getFolderJobs();
+  const def=typeof currentFolder==="string"?folderDefs.find(x=>x.key===currentFolder):null;
+  const name=def?.label || (currentFolder.value+" jobs");
+  const color=def?folderColor(def.key):folderColor("Saved");
+  const open=overlay.querySelector(".af-open-folder");
+  open.style.setProperty("--open-folder-color",color);
+  open.style.setProperty("--open-folder-ink",folderTextColor(color));
+  document.getElementById("openFolderTitle").textContent=name;
+  document.getElementById("openFolderSubtitle").textContent=records.length+" "+(currentFolder==="Projects"?"projects":"opportunities");
+  const pages=Math.max(1,Math.ceil(records.length/6));
+  folderPage=Math.max(0,Math.min(folderPage,pages-1));
+  const subset=records.slice(folderPage*6,folderPage*6+6);
+  if(!records.length){
+    const emptyMessage=currentFolder==="Projects"
+      ? '<h3>Your portfolio starts here</h3><p>Add projects with a title, a short description, and a link. Project records are stored on this device for now, not synced across accounts.</p><button class="btn" id="createPortfolioProject">+ Add project</button>'
+      : '<h3>Nothing here yet</h3><p>Jobs will appear automatically as you update their status in Applyfolio.</p><button class="btn" id="addJobFromFolder">+ Add job</button>';
+    cards.innerHTML='<div class="af-folder-empty">'+emptyMessage+'</div>';
+  }else if(currentFolder==="Projects"){
+    cards.innerHTML=subset.map(p=>'<article class="af-job-paper"><span class="af-job-clip"></span><h3>'+escapeHTML(p.name)+'</h3><div class="af-job-role">'+escapeHTML(p.description||"Portfolio project")+'</div><div class="af-job-meta">'+(safeURL(p.url)?'<a href="'+escapeHTML(safeURL(p.url))+'" target="_blank" rel="noopener noreferrer">Open project ↗</a>':"No link added")+'</div><div class="af-job-tags"><button class="mini-btn" data-delete-project="'+escapeHTML(p.id)+'">Remove</button></div></article>').join("");
+  }else{
+    cards.innerHTML=subset.map(job=>
+      '<button type="button" class="af-job-paper" data-folder-job="'+escapeHTML(job.id)+'">'+
+      '<span class="af-job-clip"></span>'+(job.highPriority?'<span class="af-priority-star" aria-label="High priority">★</span>':"")+
+      '<h3>'+escapeHTML(job.company)+'</h3><div class="af-job-role">'+escapeHTML(job.role)+'</div>'+
+      '<div class="af-job-meta"><div>Location: <b>'+escapeHTML(job.city||"Not set")+'</b></div>'+
+      '<div>Function: <b>'+escapeHTML(job.function||"Not set")+'</b></div>'+
+      '<div>Comp: <b>'+escapeHTML(job.comp||"Not added")+'</b></div>'+
+      '<div>Deadline: <b>'+escapeHTML(displayDeadline(job))+'</b></div>'+
+      '<div>Saved: '+escapeHTML(savedLabel(job))+'</div>'+
+      '<div>Next action: <b>'+escapeHTML(job.next||"No pending action")+'</b></div></div>'+
+      '<div class="af-job-tags"><span class="af-job-tag">'+escapeHTML(job.status)+'</span>'+(job.highPriority?'<span class="af-job-tag priority">★ Priority</span>':"")+'</div></button>'
+    ).join("");
+  }
+  document.getElementById("folderPageNumber").textContent=(folderPage+1)+" / "+pages;
+  document.getElementById("folderPrevious").disabled=folderPage===0;
+  document.getElementById("folderNext").disabled=folderPage>=pages-1;
+  cards.querySelectorAll("[data-folder-job]").forEach(btn=>btn.onclick=()=>{
+    overlay.hidden=true;
+    openJob(btn.dataset.folderJob,"folder");
+  });
+  cards.querySelector("#addJobFromFolder")?.addEventListener("click",()=>{
+    overlay.hidden=true;
+    showJobModal();
+    document.getElementById("fStatus").value=typeof currentFolder==="string"?currentFolder:"Saved";
+  });
+  cards.querySelector("#createPortfolioProject")?.addEventListener("click",showProjectForm);
+  cards.querySelectorAll("[data-delete-project]").forEach(btn=>btn.onclick=()=>{
+    if(!confirm("Remove this project from your portfolio?"))return;
+    portfolioProjects=portfolioProjects.filter(p=>p.id!==btn.dataset.deleteProject);
+    persist();updateCounts();renderOpenFolder();
+  });
+  overlay.hidden=false;
+}
+function showProjectForm(){
+  const box=document.getElementById("folderCards");
+  box.innerHTML='<form id="portfolioCreateForm" class="af-folder-empty af-project-form"><h3>Add portfolio project</h3><p>These records currently stay on this device.</p>'+
+    '<label>Project name<input name="name" required maxlength="90" placeholder="Project name"></label>'+
+    '<label>Description<input name="description" maxlength="180" placeholder="What did you build?"></label>'+
+    '<label>Project link (optional)<input name="url" type="url" placeholder="https://"></label>'+
+    '<div class="actions"><button type="submit" class="btn primary">Save project</button><button type="button" class="btn" id="cancelProjectCreate">Cancel</button></div></form>';
+  box.querySelector("#cancelProjectCreate").onclick=renderOpenFolder;
+  box.querySelector("#portfolioCreateForm").onsubmit=e=>{
+    e.preventDefault();const data=new FormData(e.target);
+    portfolioProjects.push({id:"p"+Date.now().toString(36),name:String(data.get("name")||"").trim(),
+      description:String(data.get("description")||"").trim(),url:safeURL(data.get("url"))||""});
+    persist();updateCounts();folderPage=Math.floor((portfolioProjects.length-1)/6);renderOpenFolder();
+  };
+}
+document.getElementById("folderPrevious").onclick=()=>{folderPage=Math.max(0,folderPage-1);renderOpenFolder();};
+document.getElementById("folderNext").onclick=()=>{folderPage++;renderOpenFolder();};
+function closeFolder(){document.getElementById("folderOverlay").hidden=true;folderReturnReady=false;}
+document.getElementById("closeFolderBtn").onclick=closeFolder;
+document.getElementById("folderOverlay").onclick=e=>{
+  if(e.target===document.getElementById("folderOverlay"))closeFolder();
+};
+document.getElementById("closeResourcesBtn").onclick=()=>document.getElementById("resourcesOverlay").hidden=true;
+document.getElementById("resourcesOverlay").onclick=e=>{
+  if(e.target===document.getElementById("resourcesOverlay"))e.currentTarget.hidden=true;
+};
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){
+    closeFolder();closeFolderColors();document.getElementById("resourcesOverlay").hidden=true;
+  }
+});
+function renderHomeDeadlines(){
+  const upcoming=activeJobs().filter(j=>["Saved","Applying"].includes(j.status))
+    .map(job=>({job,date:deadlineDateForJob(job)}))
+    .filter(v=>v.date&&v.date>=localToday())
+    .sort((a,b)=>a.date-b.date);
+  document.getElementById("homeDeadlineCount").textContent=upcoming.length;
+  const body=document.getElementById("homeDeadlineBody");
+  if(!upcoming.length){body.innerHTML='<div class="af-drop-row"><div class="af-drop-text">No upcoming application deadlines.</div></div>';return;}
+  body.innerHTML=upcoming.slice(0,7).map((entry,i)=>'<div class="af-drop-row">'+
+    '<span class="af-drop-date">'+escapeHTML(entry.date.toLocaleDateString("en-US",{month:"short",day:"numeric"}))+'</span>'+
+    '<div class="af-drop-text"><strong>'+escapeHTML(entry.job.company)+' · '+escapeHTML(entry.job.role)+'</strong><small>Application deadline</small></div>'+
+    '<button type="button" class="af-drop-open" data-open-deadline="'+i+'" aria-label="Open job">↗</button></div>').join("")+
+    (upcoming.length>7?'<button class="af-drop-view" id="viewAllDeadlineJobs">View all jobs ↗</button>':"");
+  body.querySelectorAll("[data-open-deadline]").forEach(btn=>btn.onclick=()=>openJob(upcoming[Number(btn.dataset.openDeadline)].job.id,"dashboard"));
+  body.querySelector("#viewAllDeadlineJobs")?.addEventListener("click",()=>go("jobs"));
+}
+function renderHomeTasks(){
+  const tasks=activeJobs().flatMap(job=>pendingTimelineTasks(job).map(task=>({job,task})))
+    .sort((a,b)=>{
+      const da=parseDateOnly(a.task.dueDate),db=parseDateOnly(b.task.dueDate);
+      return (da?da.getTime():Infinity)-(db?db.getTime():Infinity);
+    });
+  document.getElementById("homeTaskCount").textContent=tasks.length+" pending";
+  const body=document.getElementById("homeTaskBody");
+  if(!tasks.length){body.innerHTML='<div class="af-drop-row"><div class="af-drop-text">All caught up. No pending tasks.</div></div>';return;}
+  body.innerHTML=tasks.slice(0,7).map((item,i)=>'<div class="af-drop-row">'+
+    '<button type="button" class="af-drop-check" data-complete-home-task="'+i+'" aria-label="Mark task completed"></button>'+
+    '<div class="af-drop-text"><strong>'+escapeHTML(item.task.title)+'</strong><small>'+escapeHTML(item.job.company)+' · '+escapeHTML(item.job.role)+'</small></div>'+
+    '<span class="af-drop-date">'+(item.task.dueDate?escapeHTML(formatTimelineDate(item.task.dueDate)):"No date")+'</span>'+
+    '<button type="button" class="af-drop-open" data-open-home-task="'+i+'" aria-label="Open job">↗</button></div>').join("")+
+    (tasks.length>7?'<button type="button" class="af-drop-view" id="viewMoreHomeTasks">View urgent task list ↗</button>':"");
+  body.querySelectorAll("[data-complete-home-task]").forEach(btn=>btn.onclick=()=>{
+    const {job,task}=tasks[Number(btn.dataset.completeHomeTask)];
+    setTimelineCompletionById(job.id,task.id,true);
+    renderHomeTasks();
+  });
+  body.querySelectorAll("[data-open-home-task]").forEach(btn=>btn.onclick=()=>openJob(tasks[Number(btn.dataset.openHomeTask)].job.id,"dashboard"));
+  body.querySelector("#viewMoreHomeTasks")?.addEventListener("click",()=>go("tasks"));
+}
+document.querySelectorAll(".af-dropdown-header").forEach(toggle=>toggle.onclick=()=>{
+  const expanded=toggle.getAttribute("aria-expanded")==="true";
+  toggle.setAttribute("aria-expanded",String(!expanded));
+  document.getElementById(toggle.getAttribute("aria-controls")).hidden=expanded;
+});
+
 function refreshDashboard(){
-  safeRender("dashboard counts failed",updateCounts);
-  safeRender("attention cards failed",renderAttention);
+  safeRender("folder counts failed",updateCounts);
   safeRender("city chart failed",()=>renderDonut("city","cityDonut","cityLegend","cityTotal"));
-  safeRender("industry chart failed",()=>renderDonut("industry","industryDonut","industryLegend","industryTotal"));
-  safeRender("quick links failed",renderQuickLinks);
-  safeRender("high priority failed",renderHighPriority);
+  safeRender("role chart failed",()=>renderDonut("function","functionDonut","functionLegend","functionTotal"));
+  safeRender("folder colors failed",renderFolderColors);
+  safeRender("upcoming deadlines failed",renderHomeDeadlines);
+  safeRender("home tasks failed",renderHomeTasks);
   safeRender("function suggestions failed",renderFunctionSuggestions);
 }
 
@@ -2233,11 +2302,13 @@ document.getElementById("signOutBtn").addEventListener("click",async()=>{
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(SHORTCUTS_KEY);
   localStorage.removeItem(OFFERS_KEY);
+  localStorage.removeItem(PROJECTS_KEY);
   localStorage.removeItem(ONBOARDING_KEY);
 
   jobs=clone(DEFAULT_JOBS).map(normalizeJob);
   shortcuts=clone(DEFAULT_SHORTCUTS);
   offers=[];
+  portfolioProjects=[];
   showGuest();
 });
 
@@ -2275,10 +2346,11 @@ async function init(){
 }
 
 window.addEventListener("storage",event=>{
-  if([STORAGE_KEY,SHORTCUTS_KEY,OFFERS_KEY].includes(event.key)){
+  if([STORAGE_KEY,SHORTCUTS_KEY,OFFERS_KEY,PROJECTS_KEY].includes(event.key)){
     jobs=loadJSON(STORAGE_KEY, DEFAULT_JOBS).map(normalizeJob);
     shortcuts=loadJSON(SHORTCUTS_KEY, DEFAULT_SHORTCUTS);
     offers=loadJSON(OFFERS_KEY, []);
+    portfolioProjects=loadJSON(PROJECTS_KEY, []);
     updateAll();
   }
 });

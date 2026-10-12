@@ -1,42 +1,35 @@
-# Job Search Command Center
+# Applyfolio
 
-A student-first recruiting dashboard for saving, organizing, and acting on jobs found across LinkedIn, Handshake, company career pages, referrals, and other sources.
+A recruiting workspace for collecting job opportunities, organizing applications, tracking people and follow-ups, and preparing for interviews.
 
-## Product idea
+## Current interface
 
-The product starts after a user finds a job. It is designed to answer one question every time they open it:
+- **Overview:** live city and role-type donut charts; click any segment or legend item to explore matching jobs.
+- **Folders:** Saved Jobs, In the Works (the existing `Applying` status), Interviewing, Applied, and Projects & Portfolio.
+- **Folder view:** modal paper-folder interaction with real job cards and six opportunities per page.
+- **Customize colors:** five built-in palette options for each folder, saved to this browser.
+- **Upcoming deadlines / Tasks:** collapsed on the overview until opened. Task completion uses the existing timeline/next-action completion logic.
+- **All Jobs:** filterable full list, retaining the existing job detail page and its contacts, recruiting prompts, timeline, notes, compensation, priority and other controls.
+- **Resources:** the existing editable quick links, available from the sidebar.
+- **Offer Compare:** existing offer comparison screen, unchanged.
 
-**What should I do next?**
+## Data and limitations
 
-The current prototype includes:
+Job records, timelines, contacts, quick links, and offers use the existing Supabase account sync and browser-local fallback. The overview and job folders read these same records; no migration or duplicate job dataset is created.
 
-- Clickable dashboard metrics for Saved, Applied, Interviewing, and Needs Attention
-- Deadline, follow-up, and stale-job alerts
-- City and industry breakdowns that update as jobs are added
-- A centralized All Jobs view with filters
-- Dedicated job detail pages with contacts, timeline, compensation, and next action
-- Quick-access links back to recruiting tools and resume files
-- An offer comparison concept for translating compensation into real-life take-home and fixed-cost tradeoffs
-- Browser-local persistence for jobs added in the prototype
+The **Projects & Portfolio** folder offers basic project records (title, description, optional URL) stored **locally on the current device** at this stage. Those project records and folder color selections are **not yet cloud-synced**. This is intentionally separate from the application's existing job state, until the server data model is extended.
 
-## Current build
+## Repository structure
 
-The prototype is intentionally lightweight and dependency-free:
+The application is intentionally dependency-free and kept in the existing files:
 
-- `index.html` — product structure
-- `styles.css` — visual system
-- `app.js` — interactions and browser-local state
+- `index.html` — screens and dialogs
+- `styles.css` — visual styles and responsive rules
+- `app.js` — interactions, persistence, and existing Supabase integration
+- `case-study/index.html` — existing case-study page
 
-This makes the early product easy to test and iterate before adding accounts, a backend, or browser-extension infrastructure.
+No new build pipeline, duplicate prototype files, or libraries were added for the redesign.
 
-## Product direction
+## Next iterations
 
-The near-term focus is:
-
-**Save → Prioritize → Apply → Network → Interview → Compare**
-
-The first user-testing goal is to understand whether students find the dashboard useful enough to replace spreadsheets, scattered bookmarks, and manual notes during recruiting.
-
-## Build status
-
-V2 visual prototype has been migrated to GitHub. The next passes will focus on turning remaining placeholder actions into full interactions, refining the copy and brand, and preparing the product for real student testing.
+Refine the detailed job screen against the existing UI, then decide whether portfolio projects and folder preferences should be synced across devices.
