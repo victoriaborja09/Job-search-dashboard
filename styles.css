@@ -914,30 +914,30 @@ body{background:#fff}
   transform:translateX(-50%);border-radius:10px;
   background:rgba(255,255,255,.23);
 }
-.af-folder-overlay[data-motion="opening"]{animation:af-curtain-in .38s ease-out both}
+.af-folder-overlay[data-motion="opening"]{animation:af-curtain-in .5s ease-out both}
 .af-folder-overlay[data-motion="opening"] .af-open-folder{
-  animation:af-folder-enter .48s cubic-bezier(.2,.79,.24,1.02) both;
+  animation:af-folder-enter .65s cubic-bezier(.2,.79,.24,1.02) both;
 }
 .af-folder-overlay[data-motion="opening"] .af-folder-opening-flap{
-  animation:af-front-flip-open .46s cubic-bezier(.3,.7,.27,1) .31s both;
+  animation:af-front-flip-open .59s cubic-bezier(.3,.7,.27,1) .39s both;
 }
 .af-folder-overlay[data-motion="opening"] .af-folder-cards > *{
-  animation:af-paper-reveal .37s cubic-bezier(.22,.78,.3,1) both;
-  animation-delay:.55s;
+  animation:af-paper-reveal .46s cubic-bezier(.22,.78,.3,1) both;
+  animation-delay:.71s;
 }
-.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(2){animation-delay:.59s}
-.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(3){animation-delay:.63s}
-.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(4){animation-delay:.67s}
-.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(5){animation-delay:.71s}
-.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(6){animation-delay:.75s}
-.af-folder-overlay[data-motion="closing"]{animation:af-curtain-out .6s ease-in both}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(2){animation-delay:.77s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(3){animation-delay:.83s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(4){animation-delay:.89s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(5){animation-delay:.95s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(6){animation-delay:1.01s}
+.af-folder-overlay[data-motion="closing"]{animation:af-curtain-out .8s ease-in both}
 .af-folder-overlay[data-motion="closing"] .af-folder-opening-flap{
-  animation:af-front-flip-close .3s cubic-bezier(.26,.6,.24,1) both;
+  animation:af-front-flip-close .4s cubic-bezier(.26,.6,.24,1) both;
 }
 .af-folder-overlay[data-motion="closing"] .af-folder-cards,
-.af-folder-overlay[data-motion="closing"] .af-folder-pager{animation:af-papers-hide .18s ease-in both}
+.af-folder-overlay[data-motion="closing"] .af-folder-pager{animation:af-papers-hide .22s ease-in both}
 .af-folder-overlay[data-motion="closing"] .af-open-folder{
-  animation:af-folder-exit .39s cubic-bezier(.57,.05,.82,.37) .22s both;
+  animation:af-folder-exit .49s cubic-bezier(.57,.05,.82,.37) .28s both;
 }
 @keyframes af-curtain-in{from{opacity:0;backdrop-filter:blur(0)}to{opacity:1;backdrop-filter:blur(7px)}}
 @keyframes af-curtain-out{from{opacity:1;backdrop-filter:blur(7px)}to{opacity:0;backdrop-filter:blur(0)}}
