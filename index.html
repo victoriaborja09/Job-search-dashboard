@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Job Search Command Center</title>
-<link rel="stylesheet" href="styles.css?v=20261008-1530">
+<title>Applyfolio — Your recruiting workspace</title>
+<link rel="stylesheet" href="styles.css?v=20261012-home1">
 </head>
 <body>
 <div class="auth-screen hidden" id="authScreen">
@@ -42,9 +42,13 @@
     </div>
 
     <div class="nav">
-      <button type="button" class="active" data-page="dashboard">Dashboard</button>
-      <button type="button" data-page="jobs">All Jobs</button>
-      <button type="button" data-page="compare">Offer Compare</button>
+      <button type="button" class="active" data-page="dashboard"><span class="af-nav-icon">⌂</span>Overview</button>
+      <button type="button" data-home-action="folders"><span class="af-nav-icon">▤</span>My folders</button>
+      <button type="button" data-page="jobs"><span class="af-nav-icon">▦</span>All Jobs</button>
+      <button type="button" data-home-action="deadlines"><span class="af-nav-icon">▣</span>Calendar</button>
+      <button type="button" data-home-action="portfolio"><span class="af-nav-icon">◇</span>Portfolio</button>
+      <button type="button" data-page="compare"><span class="af-nav-icon">≋</span>Offer Compare</button>
+      <button type="button" data-home-action="resources"><span class="af-nav-icon">↗</span>Resources</button>
     </div>
 
     <div class="account-panel">
@@ -56,94 +60,86 @@
 
   <main class="content">
     <section class="section active" id="dashboard">
-      <div class="topbar">
+      <div class="af-home-top">
         <div>
-          <h2>Your recruiting home base</h2>
-          <p>Everything you found elsewhere, organized here. The dashboard should tell you what needs attention without repeating the entire job list.</p>
+          <div class="af-eyebrow">YOUR RECRUITING WORKSPACE</div>
+          <h2>Overview</h2>
         </div>
         <div class="actions">
           <button class="btn" id="pasteBtn">Paste job link</button>
-          <button class="btn primary" id="addBtn">Add a job</button>
+          <button class="btn primary" id="addBtn">+ Add job</button>
         </div>
       </div>
-
-      <div class="metric-grid">
-        <button class="metric" data-filter="Saved">
-          <div class="label">Saved</div>
-          <div class="value" id="savedCount">0</div>
-          <div class="sub">Click to view all saved roles</div>
-        </button>
-        <button class="metric" data-filter="Applied">
-          <div class="label">Applied</div>
-          <div class="value" id="appliedCount">0</div>
-          <div class="sub">Click to view submitted applications</div>
-        </button>
-        <button class="metric" data-filter="Interviewing">
-          <div class="label">Interviewing</div>
-          <div class="value" id="interviewCount">0</div>
-          <div class="sub">Click to view active interview processes</div>
-        </button>
-        <button class="metric" data-filter="Attention">
-          <div class="label">Needs attention</div>
-          <div class="value" id="attentionCount">0</div>
-          <div class="sub">Deadlines, stale saves, and follow-ups</div>
-        </button>
-      </div>
-
-      <div class="attention-grid" id="attentionGrid"></div>
-
-      <div class="dashboard-bottom">
-        <div class="panel">
-          <h3>Your search at a glance</h3>
-          <div class="panel-sub">These update automatically as jobs are added or removed.</div>
-
-          <div class="breakdowns">
-            <div class="breakdown">
-              <h4>By city</h4>
-              <div class="chart-wrap">
-                <div class="donut" id="cityDonut">
-                  <div class="donut-center"><div><strong id="cityTotal">0</strong><span>jobs</span></div></div>
-                </div>
-                <div class="legend" id="cityLegend"></div>
-              </div>
+      <div class="af-insights">
+        <div class="af-chart-panel">
+          <div class="af-eyebrow">01 / INSIGHTS</div>
+          <h3>Applications by location</h3>
+          <div class="af-chart-row">
+            <div class="donut" id="cityDonut">
+              <div class="donut-center"><div><strong id="cityTotal">0</strong><span>jobs</span></div></div>
             </div>
-
-            <div class="breakdown">
-              <h4>By industry</h4>
-              <div class="chart-wrap">
-                <div class="donut" id="industryDonut">
-                  <div class="donut-center"><div><strong id="industryTotal">0</strong><span>jobs</span></div></div>
-                </div>
-                <div class="legend" id="industryLegend"></div>
-              </div>
-            </div>
+            <div class="legend" id="cityLegend"></div>
           </div>
+          <p class="af-chart-help">Select a segment or city to see matching jobs.</p>
         </div>
-
-        <div class="panel">
-          <div class="panel-heading-row">
-            <div>
-              <h3>Quick access</h3>
-              <div class="panel-sub">Jump back to the places where your search already lives.</div>
+        <div class="af-chart-panel">
+          <div class="af-eyebrow">02 / INSIGHTS</div>
+          <h3>Applications by role type</h3>
+          <div class="af-chart-row">
+            <div class="donut" id="functionDonut">
+              <div class="donut-center"><div><strong id="functionTotal">0</strong><span>jobs</span></div></div>
             </div>
-            <div class="quick-access-actions">
-              <button type="button" class="mini-btn" id="editShortcutsBtn">Edit</button>
-              <button type="button" class="mini-btn" id="addShortcutBtn">Add</button>
-            </div>
+            <div class="legend" id="functionLegend"></div>
           </div>
-          <div class="quick-links" id="quickLinks"></div>
+          <p class="af-chart-help">Select a segment or role to see matching jobs.</p>
         </div>
       </div>
-
-      <div class="panel priority-panel">
-        <div class="panel-heading-row">
+      <div class="af-folder-section" id="homeFolders">
+        <div class="af-folder-heading">
           <div>
-            <h3>High priority</h3>
-            <div class="panel-sub">The opportunities you want to keep front and center.</div>
+            <h3>My folders</h3>
+            <p>All your opportunities, organized by where they stand.</p>
           </div>
+          <button type="button" class="btn af-color-toggle" id="folderColorsBtn">◉ Customize colors</button>
         </div>
-        <div class="priority-list" id="priorityJobs"></div>
+        <div class="af-folder-grid" id="homeFolderGrid">
+          <button type="button" class="af-folder" data-open-folder="Saved" data-folder-key="Saved">
+            <span class="af-folder-tab"></span><span class="af-folder-paper"></span>
+            <span class="af-folder-front"><span class="af-folder-symbol">♧</span><span class="af-folder-bottom"><strong>Saved Jobs</strong><span class="af-folder-count" data-folder-count="Saved">0</span><small>Ideas worth keeping</small></span></span>
+          </button>
+          <button type="button" class="af-folder" data-open-folder="Applying" data-folder-key="Applying">
+            <span class="af-folder-tab"></span><span class="af-folder-paper"></span>
+            <span class="af-folder-front"><span class="af-folder-symbol">✳</span><span class="af-folder-bottom"><strong>In the Works</strong><span class="af-folder-count" data-folder-count="Applying">0</span><small>Preparing applications</small></span></span>
+          </button>
+          <button type="button" class="af-folder" data-open-folder="Interviewing" data-folder-key="Interviewing">
+            <span class="af-folder-tab"></span><span class="af-folder-paper"></span>
+            <span class="af-folder-front"><span class="af-folder-symbol">▣</span><span class="af-folder-bottom"><strong>Interviewing</strong><span class="af-folder-count" data-folder-count="Interviewing">0</span><small>Active conversations</small></span></span>
+          </button>
+          <button type="button" class="af-folder" data-open-folder="Applied" data-folder-key="Applied">
+            <span class="af-folder-tab"></span><span class="af-folder-paper"></span>
+            <span class="af-folder-front"><span class="af-folder-symbol">↗</span><span class="af-folder-bottom"><strong>Applied</strong><span class="af-folder-count" data-folder-count="Applied">0</span><small>Submitted applications</small></span></span>
+          </button>
+          <button type="button" class="af-folder" data-open-folder="Projects" data-folder-key="Projects">
+            <span class="af-folder-tab"></span><span class="af-folder-paper"></span>
+            <span class="af-folder-front"><span class="af-folder-symbol">◇</span><span class="af-folder-bottom"><strong>Projects &amp; Portfolio</strong><span class="af-folder-count" data-folder-count="Projects">0</span><small>Work beyond applications</small></span></span>
+          </button>
+        </div>
       </div>
+      <div class="af-dropdowns">
+        <div class="af-dropdown" id="homeDeadlines">
+          <button type="button" class="af-dropdown-header" aria-expanded="false" aria-controls="homeDeadlineBody">
+            <span>Upcoming deadlines <small id="homeDeadlineCount">0</small></span><span class="af-drop-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div class="af-dropdown-body" id="homeDeadlineBody" hidden></div>
+        </div>
+        <div class="af-dropdown" id="homeTasks">
+          <button type="button" class="af-dropdown-header" aria-expanded="false" aria-controls="homeTaskBody">
+            <span>Tasks <small id="homeTaskCount">0 pending</small></span><span class="af-drop-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div class="af-dropdown-body" id="homeTaskBody" hidden></div>
+        </div>
+      </div>
+      <div class="af-home-footnote">Your charts and folders update automatically when you change an application.</div>
     </section>
 
     <section class="section" id="tasks">
@@ -499,7 +495,39 @@
   </div>
 </div>
 
+
+<div class="af-folder-overlay" id="folderOverlay" hidden role="presentation">
+  <div class="af-open-folder" role="dialog" aria-modal="true" aria-labelledby="openFolderTitle">
+    <div class="af-open-folder-back"></div>
+    <div class="af-open-folder-heading">
+      <div><h2 id="openFolderTitle">Saved Jobs</h2><p id="openFolderSubtitle">0 opportunities</p></div>
+      <button type="button" id="closeFolderBtn" aria-label="Close folder">×</button>
+    </div>
+    <div class="af-folder-board">
+      <div class="af-folder-cards" id="folderCards"></div>
+      <div class="af-folder-pager">
+        <button type="button" id="folderPrevious" aria-label="Previous page">‹</button>
+        <span id="folderPageNumber">1 / 1</span>
+        <button type="button" id="folderNext" aria-label="Next page">›</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="af-color-dialog" id="folderColorPanel" hidden role="dialog" aria-label="Customize folder colors">
+  <div class="af-color-head"><h3>Folder colors</h3><button type="button" id="closeFolderColors" aria-label="Close color customization">×</button></div>
+  <p>Choose any color from the original palette for each folder.</p>
+  <div id="folderColorRows"></div>
+  <div class="af-color-foot"><button type="button" id="resetFolderColors">Restore original colors</button><button type="button" id="doneFolderColors">Done</button></div>
+</div>
+<div class="af-folder-overlay" id="resourcesOverlay" hidden role="presentation">
+  <div class="af-resources-panel" role="dialog" aria-modal="true" aria-label="Quick links">
+    <div class="af-resources-head"><div><h3>Quick links</h3><p>Your saved recruiting resources.</p></div><button type="button" id="closeResourcesBtn" aria-label="Close resources">×</button></div>
+    <div class="quick-access-actions"><button type="button" class="mini-btn" id="editShortcutsBtn">Edit</button><button type="button" class="mini-btn" id="addShortcutBtn">+ Add</button></div>
+    <div class="quick-links" id="quickLinks"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261008-1530"></script>
+<script src="app.js?v=20261012-home1"></script>
 </body>
 </html>
