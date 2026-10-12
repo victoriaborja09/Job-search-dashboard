@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Applyfolio — Your recruiting workspace</title>
-<link rel="stylesheet" href="styles.css?v=20261012-folder-motion3">
+<link rel="stylesheet" href="styles.css?v=20261012-job-file1">
 </head>
 <body>
 <div class="auth-screen hidden" id="authScreen">
@@ -179,107 +179,149 @@
     </section>
 
     <section class="section" id="detail">
-      <div class="detail-toolbar">
-        <button class="back" id="backToJobs">← Back to jobs</button>
-        <div class="actions">
-          <button class="btn" id="editJobBtn">Edit job</button>
-          <button class="btn danger-outline" id="archiveJobBtn">Archive</button>
-        </div>
-      </div>
-
-      <div class="detail-shell">
-        <div class="detail-main">
-          <div class="detail-topline">
-            <div class="detail-status-group">
-              <span class="status-pill status-saved" id="detailStatus">Saved</span>
-              <span class="priority-pill" id="detailPriority" hidden>High priority</span>
-            </div>
-            <select class="status-select" id="detailStatusSelect" aria-label="Update application status">
-              <option>Saved</option>
-              <option>Applying</option>
-              <option>Applied</option>
-              <option>Interviewing</option>
-              <option>Offer</option>
-              <option>Closed</option>
-            </select>
+      <div class="af-job-file" role="dialog" aria-modal="true" aria-labelledby="detailRole">
+        <div class="af-job-file-tab">
+          <div class="af-job-file-tab-left">
+            <span class="af-job-file-kicker">APPLYFOLIO / JOB FILE</span>
+            <button type="button" class="back" id="backToJobs">← Back to folder</button>
           </div>
-
-          <h3 id="detailRole">Role</h3>
-          <div class="detail-company" id="detailCompany">Company</div>
-
-          <div class="detail-grid">
-            <div class="detail-box"><small>Saved</small><strong id="detailSaved"></strong></div>
-            <div class="detail-box"><small>Deadline</small><strong id="detailDeadline"></strong></div>
-            <div class="detail-box"><small>Source</small><strong id="detailSource"></strong></div>
-            <div class="detail-box"><small>Comp</small><strong id="detailComp"></strong></div>
-          </div>
-
-          <div class="detail-section">
-            <div class="section-heading-row">
-              <h4>Next action</h4>
-              <button class="mini-btn" id="editNextActionBtn">Edit</button>
-            </div>
-            <div class="list" id="detailNext"></div>
-          </div>
-
-          <div class="detail-section">
-            <div class="section-heading-row">
-              <h4>Notes</h4>
-              <button class="mini-btn" id="saveNotesBtn">Save notes</button>
-            </div>
-            <textarea class="notes-box" id="detailNotes" placeholder="Interview notes, role thoughts, questions to ask, application reminders..."></textarea>
-          </div>
-
-          <div class="detail-section">
-            <div class="section-heading-row">
-              <h4>Timeline</h4>
-              <button class="mini-btn" id="addTimelineBtn">+ Add activity</button>
-            </div>
-            <div class="list" id="detailTimeline"></div>
-          </div>
+          <button type="button" class="af-job-close" id="detailCloseBtn" aria-label="Close job details">×</button>
         </div>
 
-        <div class="detail-side">
-          <div class="section-heading-row">
-            <div>
-              <h3 class="side-title">Contacts</h3>
-              <div class="panel-sub">People connected to this role.</div>
+        <div class="af-job-paper">
+          <div class="af-job-page-clip" aria-hidden="true"></div>
+
+          <div class="af-job-hero">
+            <div class="af-job-hero-identity">
+              <div class="af-job-overline">OPPORTUNITY RECORD <span class="af-job-overline-dot">·</span> <span id="detailFileStatus">SAVED JOBS</span></div>
+              <div class="af-job-heading-row">
+                <div class="af-job-company-seal" id="detailCompanySeal" aria-hidden="true">A</div>
+                <div>
+                  <h2 id="detailCompanyName">Company</h2>
+                  <h3 id="detailRole">Role</h3>
+                </div>
+              </div>
+              <div class="detail-company" id="detailCompany">Company · Location</div>
+              <div class="detail-status-group">
+                <span class="status-pill status-saved" id="detailStatus">Saved</span>
+                <span class="priority-pill" id="detailPriority" hidden>★ High priority</span>
+              </div>
             </div>
-            <button class="mini-btn" id="addContactBtn">+ Add</button>
+
+            <div class="af-job-hero-actions">
+              <a class="af-job-primary-action link-card" id="detailJobLink" href="#" target="_blank" rel="noopener">
+                <span>↗</span><strong>Open posting</strong><span class="af-sr-only" id="detailJobLinkText">No link added</span>
+              </a>
+              <button class="af-job-action" id="detailPriorityBtn" type="button" aria-pressed="false">☆ Mark as priority</button>
+              <button class="af-job-action" id="detailMarkAppliedBtn" type="button">↗ Mark as applied</button>
+              <button class="af-job-action" id="editJobBtn" type="button">✎ Edit job</button>
+              <label class="af-job-status-control" for="detailStatusSelect">Status
+                <select class="status-select" id="detailStatusSelect" aria-label="Update application status">
+                  <option>Saved</option>
+                  <option>Applying</option>
+                  <option>Applied</option>
+                  <option>Interviewing</option>
+                  <option>Offer</option>
+                  <option>Closed</option>
+                </select>
+              </label>
+            </div>
           </div>
 
-          <div class="list detail-contact-list" id="detailContacts"></div>
+          <div class="af-job-facts">
+            <div class="detail-box"><small>Location</small><strong id="detailLocation">—</strong></div>
+            <div class="detail-box"><small>Saved</small><strong id="detailSaved">—</strong></div>
+            <div class="detail-box"><small>Deadline</small><strong id="detailDeadline">—</strong></div>
+            <div class="detail-box"><small>Compensation</small><strong id="detailComp">—</strong></div>
+            <div class="detail-box"><small>Source</small><strong id="detailSource">—</strong></div>
+          </div>
 
-          <div class="detail-section">
-            <h4>Find people</h4>
+          <section class="af-job-network">
+            <div class="af-job-section-head">
+              <h4>Find your connections</h4>
+              <span>NETWORKING TOOLS</span>
+            </div>
             <div class="find-people-grid">
-              <button class="people-tool" id="apolloConnectionsBtn">
-                <strong>Find contact info on Apollo</strong>
-                <span>Open Apollo People and copy this company name for your search.</span>
+              <button type="button" class="people-tool af-apollo-tool" id="apolloConnectionsBtn">
+                <span class="af-tool-symbol af-apollo-mark" aria-hidden="true">A</span>
+                <span class="af-tool-text"><strong>Apollo</strong><span>Open Apollo People to find contacts at this company.</span></span>
+                <span class="af-tool-open" aria-hidden="true">↗</span>
               </button>
-              <button class="people-tool" id="chatgptConnectionsBtn">
-                <strong>Ask ChatGPT to find connections</strong>
-                <span>Open ChatGPT with a ready-to-paste networking research prompt.</span>
+              <button type="button" class="people-tool af-chatgpt-tool" id="chatgptConnectionsBtn">
+                <span class="af-tool-symbol af-chatgpt-mark" aria-hidden="true">✳</span>
+                <span class="af-tool-text"><strong>ChatGPT connections prompt</strong><span>Find relevant alumni, recruiters and hiring-team connections using your existing research prompt.</span></span>
+                <span class="af-tool-open" aria-hidden="true">↗</span>
               </button>
+            </div>
+          </section>
+
+          <div class="af-job-workspace">
+            <div class="af-job-workspace-main">
+              <section class="af-job-block af-job-next-steps">
+                <div class="af-job-section-head">
+                  <h4>Next steps</h4>
+                  <div class="af-job-section-actions">
+                    <button class="mini-btn" id="editNextActionBtn" type="button">✎ Edit next action</button>
+                    <button class="mini-btn" id="detailAddTaskBtn" type="button">+ Add task</button>
+                  </div>
+                </div>
+                <div class="af-job-next-feature">
+                  <div class="af-job-overline">NEXT ACTION</div>
+                  <div class="list" id="detailNext"></div>
+                </div>
+                <div class="af-job-pending-heading">OTHER PENDING TASKS</div>
+                <div class="list af-job-task-list" id="detailTaskList"></div>
+              </section>
+
+              <section class="af-job-block af-job-timeline">
+                <div class="af-job-section-head">
+                  <h4>Application timeline</h4>
+                  <button class="mini-btn" id="addTimelineBtn" type="button">+ Add activity</button>
+                </div>
+                <div class="af-job-stages" id="detailStages"></div>
+                <details class="af-job-activity-disclosure">
+                  <summary>View full activity history <span aria-hidden="true">⌄</span></summary>
+                  <div class="list af-job-history" id="detailTimeline"></div>
+                </details>
+              </section>
+            </div>
+
+            <div class="af-job-workspace-side">
+              <section class="af-job-block af-job-notes">
+                <div class="af-job-section-head">
+                  <h4>Notes</h4>
+                  <button class="mini-btn" id="saveNotesBtn" type="button">Save notes</button>
+                </div>
+                <textarea class="notes-box" id="detailNotes" placeholder="Interview notes, role thoughts, questions to ask, application reminders..."></textarea>
+              </section>
+
+              <section class="af-job-block af-job-contacts">
+                <div class="af-job-section-head">
+                  <div><h4>Contacts</h4><p>People connected to this role.</p></div>
+                  <button class="mini-btn" id="addContactBtn" type="button">+ Add</button>
+                </div>
+                <div class="list detail-contact-list" id="detailContacts"></div>
+              </section>
+
+              <section class="af-job-block af-job-materials">
+                <div class="af-job-section-head"><h4>Documents &amp; materials</h4></div>
+                <div class="list">
+                  <a class="list-item link-card" id="detailResumeLink" href="#" target="_blank" rel="noopener">
+                    <strong>↗ Resume used</strong>
+                    <span class="small" id="detailResumeLinkText">No resume link added</span>
+                  </a>
+                  <div class="af-job-material-note">The original job posting is linked above.</div>
+                </div>
+              </section>
             </div>
           </div>
 
-          <div class="detail-section">
-            <h4>Links</h4>
-            <div class="list">
-              <a class="list-item link-card" id="detailJobLink" href="#" target="_blank" rel="noopener">
-                <strong>Job posting</strong>
-                <span class="small" id="detailJobLinkText">No link added</span>
-              </a>
-              <a class="list-item link-card" id="detailResumeLink" href="#" target="_blank" rel="noopener">
-                <strong>Resume used</strong>
-                <span class="small" id="detailResumeLinkText">No resume link added</span>
-              </a>
+          <div class="af-job-file-footer">
+            <span>END OF APPLICATION FILE</span>
+            <div class="af-job-footer-actions">
+              <button class="btn danger-outline" id="archiveJobBtn" type="button">Archive job</button>
+              <button class="af-job-delete" id="deleteJobBtn" type="button">Delete job</button>
             </div>
-          </div>
-
-          <div class="detail-section">
-            <button class="btn danger" id="deleteJobBtn">Delete job</button>
           </div>
         </div>
       </div>
@@ -529,6 +571,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261012-folder-motion1"></script>
+<script src="app.js?v=20261012-job-file1"></script>
 </body>
 </html>
