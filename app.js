@@ -550,20 +550,29 @@ function go(page){
   const target=document.getElementById(page);
   if(!target) return;
 
-  // Navigation must never depend on a chart/widget successfully rendering.
-  document.querySelectorAll(".section").forEach(section=>section.classList.remove("active"));
-  target.classList.add("active");
+  // Job files float above the current workspace, so the dimmed background
+  // stays visible instead of becoming an empty screen. All other navigation
+  // continues to show exactly one destination section.
+  if(page==="detail"){
+    const backdrop=document.querySelector(".section.active:not(#detail)") ||
+      document.getElementById("dashboard");
+    document.querySelectorAll(".section").forEach(section=>{
+      section.classList.toggle("active",section===target || section===backdrop);
+    });
+  }else{
+    document.querySelectorAll(".section").forEach(section=>section.classList.remove("active"));
+    target.classList.add("active");
+  }
   document.querySelectorAll(".nav button").forEach(button=>{
     button.classList.toggle("active",button.dataset.page===page);
   });
 
-  // Render after the destination is already visible.
   if(page==="dashboard") safeRender("dashboard render failed",refreshDashboard);
   if(page==="tasks") safeRender("tasks render failed",renderUrgentTasks);
   if(page==="jobs") safeRender("jobs render failed",renderJobs);
   if(page==="compare") safeRender("offers render failed",renderOffers);
 
-  window.scrollTo({top:0,behavior:"smooth"});
+  if(page!=="detail") window.scrollTo({top:0,behavior:"smooth"});
 }
 
 document.querySelectorAll(".nav button").forEach(button=>{
@@ -951,6 +960,29 @@ function formatTimelineDate(date){
   return d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
 }
 
+function renderDetailStages(job){
+  const stageNames=["Saved","Applying","Applied","Interviewing","Offer"];
+  const stageLabels=["Saved","Preparing","Applied","Interviewing","Offer"];
+  const active=stageNames.indexOf(job.status);
+  const stages=document.getElementById("detailStages");
+  stages.innerHTML=stageNames.map((stage,i)=>'<div class="af-job-stage '+(i===active?"is-current":i<active?"is-done":"")+'">'+
+    '<div class="af-job-stage-dot"></div><div class="af-job-stage-label">'+stageLabels[i]+'</div></div>').join("");
+}
+function renderDetailPendingTasks(job){
+  const container=document.getElementById("detailTaskList");
+  const tasks=pendingTimelineTasks(job).filter(task=>task.id!==job.nextTaskId);
+  container.innerHTML=tasks.length
+    ? tasks.map(task=>'<div class="af-job-task">'+
+      '<button type="button" class="af-task-done" data-complete-detail-task="'+escapeHTML(task.id)+'" aria-label="Complete '+escapeHTML(task.title)+'"></button>'+
+      '<div class="af-task-description"><strong>'+escapeHTML(task.title)+'</strong>'+
+      (task.dueDate?'<small>Due '+escapeHTML(formatTimelineDate(task.dueDate))+'</small>':"")+'</div>'+
+      '</div>').join("")
+    : '<div class="af-job-task-empty">No other pending tasks.</div>';
+  container.querySelectorAll("[data-complete-detail-task]").forEach(button=>{
+    button.onclick=()=>setTimelineCompletionById(job.id,button.dataset.completeDetailTask,true);
+  });
+}
+
 function openJob(id,returnPage="jobs"){
   const j=jobs.find(x=>x.id===id);
   if(!j) return;
@@ -966,6 +998,14 @@ function openJob(id,returnPage="jobs"){
   document.getElementById("detailStatus").textContent=j.status;
   document.getElementById("detailStatusSelect").value=j.status;
   document.getElementById("detailPriority").hidden=!j.highPriority;
+  document.getElementById("detailPriorityBtn").textContent=j.highPriority?"★ Priority marked":"☆ Mark as priority";
+  document.getElementById("detailPriorityBtn").setAttribute("aria-pressed",String(Boolean(j.highPriority)));
+  document.getElementById("detailMarkAppliedBtn").textContent=j.status==="Applied"?"✓ Applied":"↗ Mark as applied";
+  document.getElementById("detailMarkAppliedBtn").disabled=j.status==="Applied";
+  document.getElementById("detailFileStatus").textContent=j.status==="Applying"?"IN THE WORKS":j.status.toUpperCase();
+  document.getElementById("detailCompanyName").textContent=j.company;
+  document.getElementById("detailCompanySeal").textContent=j.company.trim().charAt(0).toUpperCase()||"A";
+  document.getElementById("detailLocation").textContent=j.city||"Not added";
   document.getElementById("detailRole").textContent=j.role;
   document.getElementById("detailCompany").textContent=[j.company,j.city,j.function,j.industry].filter(Boolean).join(" · ");
   document.getElementById("detailSaved").textContent=savedLabel(j);
@@ -973,6 +1013,8 @@ function openJob(id,returnPage="jobs"){
   document.getElementById("detailSource").textContent=j.source;
   document.getElementById("detailComp").textContent=j.comp;
   document.getElementById("detailNotes").value=j.notes || "";
+  renderDetailStages(j);
+  renderDetailPendingTasks(j);
 
 
   document.getElementById("detailNext").innerHTML=j.nextTaskId ? `
@@ -1015,7 +1057,7 @@ function openJob(id,returnPage="jobs"){
       }));
       persist();
       updateAll();
-      openJob(j.id);
+      openJob(j.id,detailReturnPage);
       toast("Contact removed");
     };
   });
@@ -1048,6 +1090,7 @@ function openJob(id,returnPage="jobs"){
   setLinkCard("detailResumeLink","detailResumeLinkText",j.resumeUrl,"Open resume / document ↗","No resume link added");
 
   go("detail");
+  document.getElementById("detailCloseBtn").focus({preventScroll:true});
 }
 
 function setLinkCard(cardId,textId,url,activeText,inactiveText){
@@ -1092,6 +1135,34 @@ document.getElementById("backToJobs").onclick=()=>{
 
 document.getElementById("backToDashboardFromTasks").onclick=()=>go("dashboard");
 
+document.getElementById("detailCloseBtn").onclick=()=>document.getElementById("backToJobs").click();
+document.getElementById("detail").addEventListener("click",event=>{
+  if(event.target===event.currentTarget)document.getElementById("backToJobs").click();
+});
+document.getElementById("detailPriorityBtn").onclick=()=>{
+  const job=jobs.find(x=>x.id===activeJobId);
+  if(!job)return;
+  job.highPriority=!job.highPriority;
+  persist();
+  updateAll();
+  openJob(job.id,detailReturnPage);
+  toast(job.highPriority?"Marked high priority":"Removed priority");
+};
+document.getElementById("detailMarkAppliedBtn").onclick=()=>{
+  const select=document.getElementById("detailStatusSelect");
+  if(select.value==="Applied")return;
+  select.value="Applied";
+  select.dispatchEvent(new Event("change",{bubbles:true}));
+};
+document.getElementById("detailAddTaskBtn").onclick=()=>{
+  showTimelineModal("activity");
+  document.getElementById("timelineModalTitle").textContent="Add task";
+  document.getElementById("tType").value="Custom";
+  document.getElementById("tTrackTask").checked=true;
+  document.getElementById("tSetNext").checked=false;
+  document.getElementById("saveTimeline").textContent="Add task";
+};
+
 document.getElementById("detailStatusSelect").onchange=e=>{
   const j=jobs.find(x=>x.id===activeJobId);
   if(!j) return;
@@ -1107,7 +1178,7 @@ document.getElementById("detailStatusSelect").onchange=e=>{
   }));
   persist();
   updateAll();
-  openJob(j.id);
+  openJob(j.id,detailReturnPage);
   toast("Status updated");
 };
 
