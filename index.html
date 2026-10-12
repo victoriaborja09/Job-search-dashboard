@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Applyfolio — Your recruiting workspace</title>
-<link rel="stylesheet" href="styles.css?v=20261012-job-file1">
+<link rel="stylesheet" href="styles.css?v=20261012-job-file2">
 </head>
 <body>
 <div class="auth-screen hidden" id="authScreen">
@@ -181,16 +181,10 @@
     <section class="section" id="detail">
       <div class="af-job-file" role="dialog" aria-modal="true" aria-labelledby="detailRole">
         <div class="af-job-file-tab">
-          <div class="af-job-file-tab-left">
-            <span class="af-job-file-kicker">APPLYFOLIO / JOB FILE</span>
-            <button type="button" class="back" id="backToJobs">← Back to folder</button>
-          </div>
           <button type="button" class="af-job-close" id="detailCloseBtn" aria-label="Close job details">×</button>
         </div>
 
         <div class="af-job-paper">
-          <div class="af-job-page-clip" aria-hidden="true"></div>
-
           <div class="af-job-hero">
             <div class="af-job-hero-identity">
               <div class="af-job-overline">OPPORTUNITY RECORD <span class="af-job-overline-dot">·</span> <span id="detailFileStatus">SAVED JOBS</span></div>
@@ -310,14 +304,14 @@
                     <strong>↗ Resume used</strong>
                     <span class="small" id="detailResumeLinkText">No resume link added</span>
                   </a>
-                  <div class="af-job-material-note">The original job posting is linked above.</div>
+                  
                 </div>
               </section>
             </div>
           </div>
 
           <div class="af-job-file-footer">
-            <span>END OF APPLICATION FILE</span>
+            <button type="button" class="back" id="backToJobs">← Back to folder</button>
             <div class="af-job-footer-actions">
               <button class="btn danger-outline" id="archiveJobBtn" type="button">Archive job</button>
               <button class="af-job-delete" id="deleteJobBtn" type="button">Delete job</button>
