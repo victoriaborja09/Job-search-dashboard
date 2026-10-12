@@ -1003,7 +1003,6 @@ function openJob(id,returnPage="jobs"){
   const submitted=["Applied","Interviewing","Offer","Closed"].includes(j.status);
   document.getElementById("detailMarkAppliedBtn").textContent=submitted?"✓ Application submitted":"↗ Mark as applied";
   document.getElementById("detailMarkAppliedBtn").disabled=submitted;
-  document.getElementById("detailFileStatus").textContent=j.status==="Applying"?"IN THE WORKS":j.status.toUpperCase();
   document.getElementById("detailCompanyName").textContent=j.company;
   document.getElementById("detailCompanySeal").textContent=j.company.trim().charAt(0).toUpperCase()||"A";
   document.getElementById("detailLocation").textContent=j.city||"Not added";
