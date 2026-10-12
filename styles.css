@@ -914,22 +914,22 @@ body{background:#fff}
   transform:translateX(-50%);border-radius:10px;
   background:rgba(255,255,255,.23);
 }
-.af-folder-overlay[data-motion="opening"]{animation:af-curtain-in .5s ease-out both}
+.af-folder-overlay[data-motion="opening"]{animation:af-curtain-in .7s ease-out both}
 .af-folder-overlay[data-motion="opening"] .af-open-folder{
-  animation:af-folder-enter .65s cubic-bezier(.2,.79,.24,1.02) both;
+  animation:af-folder-enter 1.1s cubic-bezier(.24,.54,.27,1) both;
 }
 .af-folder-overlay[data-motion="opening"] .af-folder-opening-flap{
-  animation:af-front-flip-open .59s cubic-bezier(.3,.7,.27,1) .39s both;
+  animation:af-front-flip-open .9s cubic-bezier(.28,.56,.24,1) .6s both;
 }
 .af-folder-overlay[data-motion="opening"] .af-folder-cards > *{
-  animation:af-paper-reveal .46s cubic-bezier(.22,.78,.3,1) both;
-  animation-delay:.71s;
+  animation:af-paper-reveal .65s cubic-bezier(.22,.7,.3,1) both;
+  animation-delay:1.2s;
 }
-.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(2){animation-delay:.77s}
-.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(3){animation-delay:.83s}
-.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(4){animation-delay:.89s}
-.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(5){animation-delay:.95s}
-.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(6){animation-delay:1.01s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(2){animation-delay:1.29s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(3){animation-delay:1.38s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(4){animation-delay:1.47s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(5){animation-delay:1.56s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(6){animation-delay:1.65s}
 .af-folder-overlay[data-motion="closing"]{animation:af-curtain-out .8s ease-in both}
 .af-folder-overlay[data-motion="closing"] .af-folder-opening-flap{
   animation:af-front-flip-close .4s cubic-bezier(.26,.6,.24,1) both;
