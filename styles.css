@@ -882,3 +882,97 @@ body{background:#fff}
 .af-project-form .actions{margin-top:18px;justify-content:center}
 .af-project-form .btn{border-radius:9px}
 .af-job-paper a{color:#4a2e27;text-decoration:underline;overflow-wrap:anywhere}
+
+
+/* Physical folder motion: travels from its tile, folds the front flap forward,
+   then reveals the clipped papers. Respects reduced motion. */
+.af-folder{perspective:900px}
+.af-folder-front{transform-origin:50% 100%;transition:transform .22s cubic-bezier(.2,.75,.3,1)}
+.af-folder:hover .af-folder-front,.af-folder:focus-visible .af-folder-front{transform:rotateX(-5deg) translateY(2px)}
+.af-open-folder{animation:none;perspective:1350px;transform-origin:50% 50%;will-change:transform,opacity}
+.af-folder-board{z-index:1}
+.af-open-folder-heading{z-index:5}
+.af-folder-opening-flap{
+  position:absolute;inset:101px 0 0;z-index:3;
+  border-radius:13px 13px 20px 20px;
+  background:linear-gradient(160deg,rgba(255,255,255,.15),transparent 43%,rgba(32,20,14,.12)),var(--open-folder-color);
+  border:1px solid rgba(38,24,18,.16);
+  box-shadow:inset 0 2px rgba(255,255,255,.26),0 -7px 19px rgba(25,18,13,.12);
+  transform-origin:center bottom;
+  transform:rotateX(-112deg);
+  opacity:0;
+  pointer-events:none;
+  backface-visibility:hidden;
+  will-change:transform,opacity;
+}
+.af-folder-opening-flap::before{
+  content:"";position:absolute;inset:19px;border:1px solid rgba(255,255,255,.23);
+  border-radius:5px;pointer-events:none;
+}
+.af-folder-opening-flap::after{
+  content:"";position:absolute;bottom:22px;left:50%;width:21%;height:2px;
+  transform:translateX(-50%);border-radius:10px;
+  background:rgba(255,255,255,.23);
+}
+.af-folder-overlay[data-motion="opening"]{animation:af-curtain-in .38s ease-out both}
+.af-folder-overlay[data-motion="opening"] .af-open-folder{
+  animation:af-folder-enter .48s cubic-bezier(.2,.79,.24,1.02) both;
+}
+.af-folder-overlay[data-motion="opening"] .af-folder-opening-flap{
+  animation:af-front-flip-open .46s cubic-bezier(.3,.7,.27,1) .31s both;
+}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > *{
+  animation:af-paper-reveal .37s cubic-bezier(.22,.78,.3,1) both;
+  animation-delay:.55s;
+}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(2){animation-delay:.59s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(3){animation-delay:.63s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(4){animation-delay:.67s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(5){animation-delay:.71s}
+.af-folder-overlay[data-motion="opening"] .af-folder-cards > :nth-child(6){animation-delay:.75s}
+.af-folder-overlay[data-motion="closing"]{animation:af-curtain-out .6s ease-in both}
+.af-folder-overlay[data-motion="closing"] .af-folder-opening-flap{
+  animation:af-front-flip-close .3s cubic-bezier(.26,.6,.24,1) both;
+}
+.af-folder-overlay[data-motion="closing"] .af-folder-cards,
+.af-folder-overlay[data-motion="closing"] .af-folder-pager{animation:af-papers-hide .18s ease-in both}
+.af-folder-overlay[data-motion="closing"] .af-open-folder{
+  animation:af-folder-exit .39s cubic-bezier(.57,.05,.82,.37) .22s both;
+}
+@keyframes af-curtain-in{from{opacity:0;backdrop-filter:blur(0)}to{opacity:1;backdrop-filter:blur(7px)}}
+@keyframes af-curtain-out{from{opacity:1;backdrop-filter:blur(7px)}to{opacity:0;backdrop-filter:blur(0)}}
+@keyframes af-folder-enter{
+  0%{opacity:.88;transform:translate(var(--af-origin-x,0px),var(--af-origin-y,24px)) scale(var(--af-origin-scale,.88))}
+  78%{opacity:1;transform:translateY(-7px) scale(1.012)}
+  100%{opacity:1;transform:translate(0,0) scale(1)}
+}
+@keyframes af-folder-exit{
+  from{opacity:1;transform:translate(0,0) scale(1)}
+  to{opacity:.35;transform:translate(var(--af-origin-x,0px),var(--af-origin-y,24px)) scale(var(--af-origin-scale,.88))}
+}
+@keyframes af-front-flip-open{
+  0%{opacity:1;transform:rotateX(0)}
+  58%{opacity:1}
+  100%{opacity:0;transform:rotateX(-112deg)}
+}
+@keyframes af-front-flip-close{
+  0%{opacity:0;transform:rotateX(-112deg)}
+  40%{opacity:1}
+  100%{opacity:1;transform:rotateX(0)}
+}
+@keyframes af-paper-reveal{
+  from{opacity:0;transform:translateY(34px) rotate(-1deg) scale(.965)}
+  to{opacity:1;transform:translateY(0) rotate(0) scale(1)}
+}
+@keyframes af-papers-hide{from{opacity:1}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){
+  .af-folder,.af-folder-front{transition:none!important}
+  .af-folder:hover .af-folder-front{transform:none}
+  .af-folder-overlay[data-motion],
+  .af-folder-overlay[data-motion] .af-open-folder,
+  .af-folder-overlay[data-motion] .af-folder-opening-flap,
+  .af-folder-overlay[data-motion] .af-folder-cards > *,
+  .af-folder-overlay[data-motion] .af-folder-cards,
+  .af-folder-overlay[data-motion] .af-folder-pager{animation:none!important}
+  .af-folder-opening-flap{opacity:0!important;transform:rotateX(-112deg)!important}
+}

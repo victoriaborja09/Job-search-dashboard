@@ -1948,6 +1948,7 @@ let folderColors=loadJSON(FOLDER_COLORS_KEY,{});
 let currentFolder=null;
 let folderPage=0;
 let folderReturnReady=false;
+let lastFolderTrigger=null;
 function folderColor(key){
   const d=folderDefs.find(x=>x.key===key);
   const color=folderColors[key];
@@ -1985,7 +1986,7 @@ document.getElementById("resetFolderColors").onclick=()=>{
   localStorage.removeItem(FOLDER_COLORS_KEY);
   renderFolderColors();
 };
-document.querySelectorAll("[data-open-folder]").forEach(button=>button.onclick=()=>openFolder(button.dataset.openFolder));
+document.querySelectorAll("[data-open-folder]").forEach(button=>button.onclick=()=>openFolder(button.dataset.openFolder,button));
 function getFolderJobs(){
   if(currentFolder==null) return [];
   if(typeof currentFolder==="string"){
@@ -1993,8 +1994,36 @@ function getFolderJobs(){
   }
   return activeJobs().filter(job=>(String(job[currentFolder.key]||"").trim() || "Unspecified")===currentFolder.value);
 }
-function openFolder(filter){
-  currentFolder=filter;folderPage=0;folderReturnReady=true;renderOpenFolder();
+function openFolder(filter,trigger=null){
+  currentFolder=filter;
+  folderPage=0;
+  folderReturnReady=true;
+  lastFolderTrigger=trigger || (typeof filter==="string"
+    ? document.querySelector('[data-open-folder="'+filter+'"]') : null);
+  renderOpenFolder();
+}
+function prefersReducedFolderMotion(){
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+function showFolderAnimated(){
+  const overlay=document.getElementById("folderOverlay");
+  const dialog=overlay.querySelector(".af-open-folder");
+  overlay.removeAttribute("data-motion");
+  overlay.hidden=false;
+
+  // Scale and travel from the actual folder tile, rather than simply
+  // fading in an unrelated modal. Location/role filters use a soft center zoom.
+  const target=dialog.getBoundingClientRect();
+  const tile=lastFolderTrigger?.isConnected?lastFolderTrigger.getBoundingClientRect():null;
+  const dx=tile?(tile.left+tile.width/2)-(target.left+target.width/2):0;
+  const dy=tile?(tile.top+tile.height/2)-(target.top+target.height/2):20;
+  const scale=tile?Math.max(.18,Math.min(.7,tile.width/target.width)):.9;
+  dialog.style.setProperty("--af-origin-x",dx+"px");
+  dialog.style.setProperty("--af-origin-y",dy+"px");
+  dialog.style.setProperty("--af-origin-scale",String(scale));
+
+  overlay.dataset.motion=prefersReducedFolderMotion()?"open":"opening";
+  document.getElementById("closeFolderBtn").focus({preventScroll:true});
 }
 function renderOpenFolder(){
   if(currentFolder==null)return;
@@ -2036,11 +2065,11 @@ function renderOpenFolder(){
   document.getElementById("folderPrevious").disabled=folderPage===0;
   document.getElementById("folderNext").disabled=folderPage>=pages-1;
   cards.querySelectorAll("[data-folder-job]").forEach(btn=>btn.onclick=()=>{
-    overlay.hidden=true;
+    closeFolder(true,false);
     openJob(btn.dataset.folderJob,"folder");
   });
   cards.querySelector("#addJobFromFolder")?.addEventListener("click",()=>{
-    overlay.hidden=true;
+    closeFolder(true,false);
     showJobModal();
     document.getElementById("fStatus").value=typeof currentFolder==="string"?currentFolder:"Saved";
   });
@@ -2050,7 +2079,7 @@ function renderOpenFolder(){
     portfolioProjects=portfolioProjects.filter(p=>p.id!==btn.dataset.deleteProject);
     persist();updateCounts();renderOpenFolder();
   });
-  overlay.hidden=false;
+  if(overlay.hidden)showFolderAnimated();
 }
 function showProjectForm(){
   const box=document.getElementById("folderCards");
@@ -2069,8 +2098,31 @@ function showProjectForm(){
 }
 document.getElementById("folderPrevious").onclick=()=>{folderPage=Math.max(0,folderPage-1);renderOpenFolder();};
 document.getElementById("folderNext").onclick=()=>{folderPage++;renderOpenFolder();};
-function closeFolder(){document.getElementById("folderOverlay").hidden=true;folderReturnReady=false;}
-document.getElementById("closeFolderBtn").onclick=closeFolder;
+function finishFolderClose(restoreFocus=true){
+  const overlay=document.getElementById("folderOverlay");
+  overlay.hidden=true;
+  overlay.removeAttribute("data-motion");
+  folderReturnReady=false;
+  if(restoreFocus && lastFolderTrigger?.isConnected &&
+     document.getElementById("dashboard").classList.contains("active")){
+    lastFolderTrigger.focus({preventScroll:true});
+  }
+}
+function closeFolder(immediate=false,restoreFocus=true){
+  const overlay=document.getElementById("folderOverlay");
+  if(overlay.hidden || overlay.dataset.motion==="closing")return;
+  if(immediate || prefersReducedFolderMotion()){
+    finishFolderClose(restoreFocus);
+    return;
+  }
+  overlay.dataset.motion="closing";
+}
+document.querySelector("#folderOverlay .af-open-folder").addEventListener("animationend",event=>{
+  if(event.target===event.currentTarget && event.animationName==="af-folder-exit"){
+    finishFolderClose();
+  }
+});
+document.getElementById("closeFolderBtn").onclick=()=>closeFolder();
 document.getElementById("folderOverlay").onclick=e=>{
   if(e.target===document.getElementById("folderOverlay"))closeFolder();
 };
