@@ -610,8 +610,7 @@ function updateCounts(){
 function distribution(key){
   const counts={};
   activeJobs().forEach(j=>{
-    const value=String(j[key] || "").trim();
-    if(!value) return;
+    const value=String(j[key] || "").trim() || "Unspecified";
     counts[value]=(counts[value]||0)+1;
   });
   return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
@@ -768,139 +767,6 @@ function safeURL(url){
   }
 }
 
-function renderAttention(){
-  const current=activeJobs();
-  const urgent=urgentTasks();
-
-  const followup=current
-    .map(job=>contactFollowUpInfo(job))
-    .filter(Boolean)
-    .sort((a,b)=>a.date-b.date)[0] || null;
-
-  const staleEntry=current
-    .map(job=>({job,days:staleJobDays(job)}))
-    .filter(item=>item.days>=7)
-    .sort((a,b)=>b.days-a.days)[0];
-
-  const cards=[];
-
-  if(urgent.length===1){
-    const task=urgent[0];
-    cards.push({
-      cls:"deadline",
-      title:"1 task needs attention",
-      text:`<strong>${escapeHTML(task.label)}</strong> for ${escapeHTML(task.job.company)} · ${escapeHTML(task.job.role)} is ${escapeHTML(taskDueLabel(task).toLowerCase())}. Click to open your task list.`,
-      id:"",
-      openTasks:true
-    });
-  }else if(urgent.length>1){
-    cards.push({
-      cls:"deadline",
-      title:"Tasks need attention",
-      text:`You have <strong>${urgent.length} tasks</strong> that are due soon or still need action. Click to see the full task list.`,
-      id:"",
-      openTasks:true
-    });
-  }else{
-    cards.push({
-      cls:"deadline empty",
-      title:"No urgent deadlines",
-      text:"Nothing is due within the next five days.",
-      id:"",
-      openTasks:false
-    });
-  }
-
-  if(followup){
-    const sentDays=followup.contact.last
-      ? dayDifference(parseDateOnly(followup.contact.last),localToday())
-      : null;
-    const timing=followup.reason==="one-week" && Number.isFinite(sentDays)
-      ? `It has been ${sentDays} day${sentDays===1?"":"s"} since your last message.`
-      : "Your planned follow-up date has arrived.";
-
-    cards.push({
-      cls:"followup",
-      title:"Follow-up due",
-      text:`<strong>${escapeHTML(followup.contact.name)}</strong> on the ${escapeHTML(followup.job.company)} role is due for a follow-up. ${timing}`,
-      id:followup.job.id
-    });
-  }else{
-    cards.push({
-      cls:"followup empty",
-      title:"No follow-ups due",
-      text:"A follow-up will surface one week after your last email or message.",
-      id:""
-    });
-  }
-
-  if(staleEntry){
-    cards.push({
-      cls:"stale",
-      title:"Application getting stale",
-      text:`<strong>${escapeHTML(staleEntry.job.company)} · ${escapeHTML(staleEntry.job.role)}</strong> has had no activity for ${staleEntry.days} days.`,
-      id:staleEntry.job.id
-    });
-  }else{
-    cards.push({
-      cls:"stale empty",
-      title:"Nothing stale",
-      text:"No saved or active applications have gone a week without activity.",
-      id:""
-    });
-  }
-
-  const grid=document.getElementById("attentionGrid");
-  grid.innerHTML=cards.map(card=>`
-    <button class="attention ${card.cls}"
-      ${card.id ? `data-attention-job="${card.id}"` : ""}
-      ${card.openTasks ? 'data-open-tasks="true"' : ""}>
-      <h4>${card.title}</h4>
-      <p>${card.text}</p>
-    </button>
-  `).join("");
-
-  grid.querySelectorAll("[data-attention-job]").forEach(btn=>{
-    btn.onclick=()=>openJob(btn.dataset.attentionJob);
-  });
-
-  grid.querySelectorAll("[data-open-tasks]").forEach(btn=>{
-    btn.onclick=()=>go("tasks");
-  });
-}
-
-function renderHighPriority(){
-  const box=document.getElementById("priorityJobs");
-  if(!box) return;
-
-  const priority=activeJobs().filter(job=>job.highPriority);
-
-  if(!priority.length){
-    box.innerHTML='<div class="priority-empty">No high-priority jobs yet. Mark one as high priority when you add or edit it.</div>';
-    return;
-  }
-
-  box.innerHTML=priority.map(j=>`
-    <div class="jobs-row job priority-job" data-priority-job="${j.id}">
-      <div>
-        <div class="job-title">${escapeHTML(j.role)}</div>
-        <div class="small">★ High priority</div>
-      </div>
-      <div>
-        <div class="job-title">${escapeHTML(j.company)}</div>
-        <div class="small">${escapeHTML(j.city)}</div>
-      </div>
-      <div><span class="status-pill ${statusClass(j.status)}">${escapeHTML(j.status)}</span></div>
-      <div><strong>${escapeHTML(displayDeadline(j))}</strong></div>
-      <div><strong>${escapeHTML(j.next || "No pending actions")}</strong><div class="small">${jobNeedsAttention(j)?"Needs attention":"On track"}</div></div>
-    </div>
-  `).join("");
-
-  box.querySelectorAll("[data-priority-job]").forEach(row=>{
-    row.onclick=()=>openJob(row.dataset.priorityJob);
-  });
-}
-
 function renderQuickLinks(){
   const box=document.getElementById("quickLinks");
   if(!box) return;
@@ -945,7 +811,7 @@ function filteredJobs(){
       (activeStatusFilter==="Attention" ? jobNeedsAttention(j) : j.status===activeStatusFilter);
 
     const dimensionOK = !activeDimensionFilter ||
-      String(j[activeDimensionFilter.key] || "").trim()===activeDimensionFilter.value;
+      (String(j[activeDimensionFilter.key] || "").trim() || "Unspecified")===activeDimensionFilter.value;
 
     return urgentOK && statusOK && dimensionOK;
   });
@@ -2125,7 +1991,7 @@ function getFolderJobs(){
   if(typeof currentFolder==="string"){
     return currentFolder==="Projects" ? portfolioProjects : activeJobs().filter(job=>job.status===currentFolder);
   }
-  return activeJobs().filter(job=>String(job[currentFolder.key]||"").trim()===currentFolder.value);
+  return activeJobs().filter(job=>(String(job[currentFolder.key]||"").trim() || "Unspecified")===currentFolder.value);
 }
 function openFolder(filter){
   currentFolder=filter;folderPage=0;folderReturnReady=true;renderOpenFolder();
