@@ -1230,7 +1230,7 @@ body{background:#fff}
 #detail .af-job-materials .link-card{display:flex;flex-direction:column;gap:3px}
 #detail .af-job-materials .link-card strong{font-size:12px}
 #detail .af-job-file-footer{
-  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  display:flex;align-items:center;justify-content:flex-end;gap:14px;
   border-top:1px solid #e9e1d7;padding:18px 0 0;margin-top:0;
 }
 #detail .af-job-footer-actions{display:flex;flex-wrap:wrap;gap:9px}
