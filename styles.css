@@ -873,3 +873,12 @@ body{background:#fff}
   .af-job-paper h3{font-size:21px}
   .af-job-role{font-size:15px}
 }
+
+/* Compact portfolio entry inside the physical folder */
+.af-project-form{text-align:left;padding:22px 25px;max-width:610px;margin:auto}
+.af-project-form h3,.af-project-form p{text-align:center}
+.af-project-form label{display:grid;gap:7px;margin:12px 0;color:#61574e;font-size:12px}
+.af-project-form input{width:100%;padding:11px 12px;border:1px solid #d5cdbd;border-radius:9px;background:#fffefa;color:#231815;outline-offset:2px}
+.af-project-form .actions{margin-top:18px;justify-content:center}
+.af-project-form .btn{border-radius:9px}
+.af-job-paper a{color:#4a2e27;text-decoration:underline;overflow-wrap:anywhere}
