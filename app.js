@@ -1000,8 +1000,9 @@ function openJob(id,returnPage="jobs"){
   document.getElementById("detailPriority").hidden=!j.highPriority;
   document.getElementById("detailPriorityBtn").textContent=j.highPriority?"★ Priority marked":"☆ Mark as priority";
   document.getElementById("detailPriorityBtn").setAttribute("aria-pressed",String(Boolean(j.highPriority)));
-  document.getElementById("detailMarkAppliedBtn").textContent=j.status==="Applied"?"✓ Applied":"↗ Mark as applied";
-  document.getElementById("detailMarkAppliedBtn").disabled=j.status==="Applied";
+  const submitted=["Applied","Interviewing","Offer","Closed"].includes(j.status);
+  document.getElementById("detailMarkAppliedBtn").textContent=submitted?"✓ Application submitted":"↗ Mark as applied";
+  document.getElementById("detailMarkAppliedBtn").disabled=submitted;
   document.getElementById("detailFileStatus").textContent=j.status==="Applying"?"IN THE WORKS":j.status.toUpperCase();
   document.getElementById("detailCompanyName").textContent=j.company;
   document.getElementById("detailCompanySeal").textContent=j.company.trim().charAt(0).toUpperCase()||"A";
