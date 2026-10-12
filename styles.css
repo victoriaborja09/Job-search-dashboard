@@ -1008,7 +1008,7 @@ body{background:#fff}
   border:1px solid #c8ae7c;
   background:linear-gradient(110deg,#efddb8,#e5cda0);
   padding:13px 24px 18px;
-  display:flex;align-items:flex-start;justify-content:flex-end;
+  display:flex;align-items:flex-start;justify-content:space-between;
   gap:16px;
 }
 #detail .af-job-file-tab:before{
