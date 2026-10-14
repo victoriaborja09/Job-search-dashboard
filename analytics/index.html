@@ -6,26 +6,11 @@
   <meta name="theme-color" content="#fcfcfb">
   <title>Product Analytics | Applyfolio</title>
   <meta name="description" content="Applyfolio product analytics and feature performance workspace.">
-  <link rel="stylesheet" href="./styles.css?v=1">
-  <script src="./app.js?v=1" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=2">
+  <script src="./app.js?v=2" defer></script>
 </head>
 <body>
 <div class="shell">
-  <aside class="sidebar" aria-label="Analytics navigation">
-    <a class="brand" href="../"><span class="logo">Applyfolio</span><span class="brand-sub">PRODUCT INTELLIGENCE</span></a>
-    <nav class="nav">
-      <a class="nav-link active" href="#overview"><span class="nav-icon">⌂</span>Overview</a>
-      <a class="nav-link" href="#feature-impact"><span class="nav-icon">◇</span>Feature impact</a>
-      <a class="nav-link" href="#user-journey"><span class="nav-icon">▤</span>User journey</a>
-      <a class="nav-link" href="#decisions"><span class="nav-icon">◷</span>Product decisions</a>
-      <a class="nav-link" href="#instrumentation"><span class="nav-icon">⊞</span>Instrumentation</a>
-    </nav>
-    <div class="sidebar-bottom">
-      <a href="../">↗ Open Applyfolio</a>
-      <a href="../case-study/">↗ Product case study</a>
-    </div>
-  </aside>
-
   <main class="main" id="overview">
     <header class="topbar">
       <div><div class="eyebrow">WORKSPACE / ANALYTICS</div><h1>Product analytics</h1><p class="lede">From usage patterns to better product decisions.</p></div>
@@ -36,10 +21,12 @@
     </header>
 
     <section class="metric-grid" aria-label="Product metrics">
-      <article class="metric"><div class="metric-name">Weekly active users <span class="help" title="Distinct accounts performing at least one meaningful action during the latest complete week.">ⓘ</span></div><div class="metric-value" id="wauValue">—</div><div class="metric-foot"><span class="delta" id="wauDelta">—</span><span>vs. prior week</span></div></article>
-      <article class="metric"><div class="metric-name">Jobs saved <span class="help" title="New jobs added across the selected reporting window.">ⓘ</span></div><div class="metric-value" id="jobsValue">—</div><div class="metric-foot"><span class="delta" id="jobsDelta">—</span><span>vs. preceding equal window</span></div></article>
-      <article class="metric"><div class="metric-name">Tasks completed <span class="help" title="Distinct timeline tasks marked complete across the selected reporting window.">ⓘ</span></div><div class="metric-value" id="taskValue">—</div><div class="metric-foot"><span class="delta" id="taskDelta">—</span><span>vs. preceding equal window</span></div></article>
-      <article class="metric"><div class="metric-name">7-day return rate <span class="help" title="Share of the active cohort that performed another meaningful action within the following 7 days.">ⓘ</span></div><div class="metric-value" id="retentionValue">—</div><div class="metric-foot"><span class="delta" id="retentionDelta">—</span><span>percentage points, week over week</span></div></article>
+      <article class="metric"><div class="metric-name">Average weekly active users <span class="help" title="Average number of distinct accounts active in a week, across the selected reporting period.">ⓘ</span></div><div class="metric-value" id="wauValue">—</div><div class="metric-foot"><span class="delta" id="wauDelta">—</span><span>vs. preceding equal window</span></div></article>
+      <article class="metric"><div class="metric-name">Unique active users <span class="help" title="Distinct accounts active at least once during the selected reporting period. Each account is counted once.">ⓘ</span></div><div class="metric-value" id="uniqueValue">—</div><div class="metric-foot"><span class="delta" id="uniqueDelta">—</span><span>vs. preceding equal window</span></div></article>
+      <article class="metric"><div class="metric-name">Jobs saved <span class="help" title="New job records saved across the selected reporting window.">ⓘ</span></div><div class="metric-value" id="jobsValue">—</div><div class="metric-foot"><span class="delta" id="jobsDelta">—</span><span>vs. preceding equal window</span></div></article>
+      <article class="metric"><div class="metric-name">Jobs saved per active user <span class="help" title="Jobs saved during the selected period divided by unique active users over that same period.">ⓘ</span></div><div class="metric-value" id="jobsPerUserValue">—</div><div class="metric-foot"><span>Saved jobs ÷ distinct active users</span></div></article>
+      <article class="metric"><div class="metric-name">Tasks completed <span class="help" title="Timeline tasks marked complete during the selected reporting window.">ⓘ</span></div><div class="metric-value" id="taskValue">—</div><div class="metric-foot"><span class="delta" id="taskDelta">—</span><span>vs. preceding equal window</span></div></article>
+      <article class="metric"><div class="metric-name">7-day return rate <span class="help" title="Weighted share of weekly active users who returned for another meaningful action within seven days, across the selected period.">ⓘ</span></div><div class="metric-value" id="retentionValue">—</div><div class="metric-foot"><span class="delta" id="retentionDelta">—</span><span>percentage points vs. preceding window</span></div></article>
     </section>
 
     <section class="viz-row" aria-label="Engagement analysis">
@@ -96,7 +83,7 @@
       </article>
       <article class="panel">
         <div class="eyebrow">05 / FOLLOW-THROUGH</div><h2>Retention & repeat use</h2><p class="subhead">Changes in returning-user behavior around the networking launch.</p>
-        <div class="retention-pair"><div class="retention-block"><span>Before</span><strong>50%</strong><small>84 / 168 users returned</small></div><div class="retention-block"><span>After</span><strong>57%</strong><small>120 / 211 users returned</small></div></div>
+        <div class="retention-pair"><div class="retention-block"><span>Before</span><strong>26%</strong><small>15 / 58 users returned</small></div><div class="retention-block"><span>After</span><strong>33%</strong><small>22 / 67 users returned</small></div></div>
         <div id="retentionChart" class="mini-retention" role="img" aria-label="Weekly return rate chart"></div>
         <div class="observation"><span class="observation-icon">↗</span><p>The return-rate increase is directionally encouraging. Changing cohort mix could also explain some of the movement.</p></div>
       </article>
@@ -115,7 +102,7 @@
         <table><thead><tr><th>Event</th><th>Trigger</th><th>Properties</th></tr></thead><tbody id="eventTable"></tbody></table>
       </div>
     </section>
-    <footer>Applyfolio <span>Product intelligence</span> <a href="../">Return to product ↗</a></footer>
+    <footer>Applyfolio <span>Product analytics</span> <a href="../">Return to product ↗</a></footer>
   </main>
 </div>
 </body>
