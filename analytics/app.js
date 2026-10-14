@@ -36,20 +36,104 @@ const rows=userCounts.map((users,index)=>{
     priorities:n>=24?[6,9,10,8][n-24]:0
   };
 });
+
+/* Two equal 14-day observation windows around an illustrative late-September
+   networking-tools release. This compact account/job/contact fixture models
+   the fields Applyfolio already saves: contact.last (email/message sent date)
+   and contact.followUp. Tool clicks here are synthetic instrumentation, not
+   events currently collected by the live Applyfolio application. */
+function networkingCohort(kind){
+  const after=kind==="after";
+  const total=after?67:58,viewers=after?51:44;
+  const contactCreators=after?13:7,toolUsers=after?19:0;
+  const firstMonday=after?"2026-09-28":"2026-09-14";
+  const secondMonday=after?"2026-10-05":"2026-09-21";
+  const monday=after?["2026-09-28","2026-10-05"]:["2026-09-14","2026-09-21"];
+  const users=Array.from({length:total},(_,i)=>({
+    id:kind+"-student-"+(i+1),
+    viewedJob:i<viewers,
+    toolClicks:[],
+    contacts:[]
+  }));
+  if(after){
+    // 19 distinct tool users, 26 clicks (10 then 16 across the two weeks).
+    for(let i=0;i<toolUsers;i++){
+      const week=i<10?0:1;
+      users[i].toolClicks.push({jobId:"company-"+i,tool:i%2?"ChatGPT":"Apollo",at:monday[week]+"T09:00:00Z"});
+      if(i>=10&&i<17)users[i].toolClicks.push({jobId:"company-"+i,tool:i%2?"Apollo":"ChatGPT",at:"2026-10-07T09:00:00Z"});
+    }
+  }
+  const countContactsPerUser=i=>
+    after?(i<13?(i>=9&&i<13?2:1):0):(i<7?(i>=5?2:1):0);
+  for(let i=0;i<contactCreators;i++){
+    const toolAssisted=after&&i<9;
+    const week=after?(toolAssisted?(i<5?0:1):(i<11?0:1)):(i<4?0:1);
+    const savedDate=after?(week===0?"2026-09-29":"2026-10-06"):(week===0?"2026-09-16":"2026-09-23");
+    const outreach=after?(toolAssisted?i<6:i<12):i<5;
+    const followUp=outreach&&(after?(toolAssisted?i<3:i===9):i<2);
+    const entries=countContactsPerUser(i);
+    for(let k=0;k<entries;k++){
+      const jobId=k===0?"company-"+i:"secondary-company-"+i;
+      users[i].contacts.push({
+        jobId,savedAt:savedDate+"T12:00:00Z",
+        last:k===0&&outreach?savedDate:"",
+        followUp:k===0&&followUp?(week===0?(after?"2026-10-06":"2026-09-23"):(after?"2026-10-13":"2026-09-30")):""
+      });
+    }
+  }
+  const savedAfterTool=user=>user.contacts.filter(contact=>user.toolClicks.some(click=>
+    click.jobId===contact.jobId &&
+    new Date(contact.savedAt)>=new Date(click.at) &&
+    new Date(contact.savedAt)-new Date(click.at)<=7*86400000
+  ));
+  const toolContactUsers=users.filter(u=>savedAfterTool(u).length>0);
+  const toolOutreachUsers=toolContactUsers.filter(u=>savedAfterTool(u).some(c=>Boolean(c.last)));
+  const toolFollowupUsers=toolOutreachUsers.filter(u=>savedAfterTool(u).some(c=>Boolean(c.last&&c.followUp)));
+  return {
+    users,
+    active:users.length,
+    jobViewers:users.filter(u=>u.viewedJob).length,
+    toolUsers:users.filter(u=>u.toolClicks.length>0).length,
+    toolClicks:users.reduce((n,u)=>n+u.toolClicks.length,0),
+    contactsAdded:users.reduce((n,u)=>n+u.contacts.length,0),
+    contactCreators:users.filter(u=>u.contacts.length>0).length,
+    outreachUsers:users.filter(u=>u.contacts.some(c=>Boolean(c.last))).length,
+    followupUsers:users.filter(u=>u.contacts.some(c=>Boolean(c.followUp))).length,
+    toolContactUsers:toolContactUsers.length,
+    toolOutreachUsers:toolOutreachUsers.length,
+    toolFollowupUsers:toolFollowupUsers.length
+  };
+}
+const networkingBefore=networkingCohort("before");
+const networkingAfter=networkingCohort("after");
+
 const sample={
   networking:{
-    title:"Contacts & networking tools",date:"NETWORKING / RELEASE COMPARISON",stage:"Follow-up analysis",
-    problem:"Basic contact tracking was available, but finding relevant people still required a separate research workflow.",
-    hypothesis:"Putting Apollo and a tailored ChatGPT connection-research prompt beside saved contacts will increase the share of engaged users who record a professional contact.",
-    metric:"Share of engaged users who save at least one contact within the measurement window.",
-    guardrail:"Monitor return rate and whether users still complete core job-tracking tasks.",
-    metricTitle:"Users recording a contact",
-    before:{n:7,d:58},after:{n:13,d:67},
-    funnelTitle:"Networking adoption funnel",
-    funnelSubtitle:"Distinct users in the post-release observation cohort.",
-    steps:[["Engaged users",67],["Viewed a job file",51],["Opened Apollo / ChatGPT",19],["Saved a contact after tool use",6]],
-    summary:"6 of 19 networking-tool users subsequently saved a contact (32%). A clearer path from research to saved contacts could be worth testing.",
-    note:"Pre/post cohorts were not randomized. The change is descriptive and may reflect user mix or timing, not just the release."
+    title:"Contacts & networking tools",date:"SEP 14–27 / SEP 28–OCT 11",stage:"Two-week cohorts",
+    problem:"Contact tracking existed, but students had to leave a job file to research people at a company, then return to save contact details.",
+    hypothesis:"Placing Apollo and ChatGPT discovery shortcuts beside each application will help more students save relevant contacts and record that they initiated outreach.",
+    metric:"Share of active users who recorded an Email / message sent date on a saved contact.",
+    guardrail:"Check contact creation, follow-up scheduling, and ongoing job-tracking activity. A filled outreach date is self-reported, not independently verified.",
+    metricTitle:"Users recording outreach",
+    before:{n:networkingBefore.outreachUsers,d:networkingBefore.active},
+    after:{n:networkingAfter.outreachUsers,d:networkingAfter.active},
+    secondary:{title:"Users saving a contact",before:{n:networkingBefore.contactCreators,d:networkingBefore.active},after:{n:networkingAfter.contactCreators,d:networkingAfter.active}},
+    funnelTitle:"Networking discovery → outreach",
+    funnelSubtitle:"Post-release users; tool-to-contact matches use the same user and job within 7 days.",
+    steps:[
+      ["Engaged users",networkingAfter.active],
+      ["Viewed a job file",networkingAfter.jobViewers],
+      ["Opened Apollo or ChatGPT",networkingAfter.toolUsers],
+      ["Saved a contact after tool use",networkingAfter.toolContactUsers],
+      ["Recorded outreach date",networkingAfter.toolOutreachUsers],
+      ["Scheduled follow-up",networkingAfter.toolFollowupUsers]
+    ],
+    summary:networkingAfter.toolContactUsers+" of "+networkingAfter.toolUsers+
+      " tool users saved a contact for the same job within 7 days; "+
+      networkingAfter.toolOutreachUsers+" recorded outreach and "+
+      networkingAfter.toolFollowupUsers+" scheduled a follow-up. "+
+      "The saved-contact stage is a discovery proxy, not verification that a tool found the contact.",
+    note:"Pre/post comparison: Sep 14–27 vs Sep 28–Oct 11. Self-reported outreach dates; tool-to-contact proximity does not prove attribution or causation."
   },
   priority:{
     title:"Priority & next steps",date:"NEXT STEPS / RELEASE COMPARISON",stage:"Behavioral readout",
@@ -81,7 +165,7 @@ const sample={
   }
 };
 const decisions=[
-  {id:"01 / NETWORKING",title:"Reduce the tool-to-contact gap",copy:"Research tools generate interest, but many users do not save a contact afterward. Test a clearer Add contact action alongside the networking tools.",metric:"6 / 19 tool users saved a contact"},
+  {id:"01 / NETWORKING",title:"Turn discovered contacts into outreach",copy:"Users may save a contact without recording any outreach. Test clearer follow-through within the existing contact workflow, then watch recorded messages and follow-up dates.",metric:networkingAfter.toolOutreachUsers+" / "+networkingAfter.toolUsers+" tool users recorded outreach"},
   {id:"02 / TASK WORKFLOW",title:"Make priority more actionable",copy:"Priority works best when it connects directly to the next task. Consider highlighting a pending follow-up inside the priority-marked job file.",metric:"17 / 28 priority users completed a linked task"},
   {id:"03 / DISCOVERY",title:"Optimize scanning before adding motion",copy:"Job-file conversion is more meaningful than the number of folder animations. Measure how quickly users find an application before changing folder behavior again.",metric:"46% discovery-to-detail conversion"}
 ];
@@ -89,8 +173,10 @@ const taxonomy=[
   ["job_created","A new job is saved successfully","job_id, role_type, city, source"],
   ["job_detail_opened","A user opens an individual job file","job_id, entry_surface, status"],
   ["folder_opened","A status folder opens","folder_status, item_count"],
-  ["networking_tool_opened","Apollo or ChatGPT connections tool is clicked","job_id, tool_name"],
-  ["contact_created","A contact record is saved to a job","job_id, contact_id"],
+  ["networking_tool_opened","Apollo or ChatGPT shortcut is clicked","user_id, job_id, tool_name, clicked_at"],
+  ["contact_created","A contact record is saved to a job","user_id, job_id, contact_id, saved_at"],
+  ["contact_outreach_recorded","Email / message sent date is present on a saved contact","user_id, job_id, contact_id, last"],
+  ["contact_followup_scheduled","Follow-up date is present on a saved contact","user_id, job_id, contact_id, followUp"],
   ["priority_updated","Priority is enabled or disabled for a job","job_id, priority_state"],
   ["task_completed","A tracked timeline task is marked complete","job_id, task_id, completion_time"],
   ["session_started","First meaningful activity after a period of inactivity","account_id, device_type"]
@@ -209,6 +295,14 @@ function featurePanel(){
   $("#impactLift").textContent=(difference>0?"+":"")+difference.toFixed(1)+" pp";
   $("#impactLift").classList.toggle("lower",difference<0);
   $("#impactNote").textContent=f.note;
+  const secondary=$("#impactSecondary");
+  secondary.hidden=!f.secondary;
+  if(f.secondary){
+    const b=f.secondary.before,a=f.secondary.after;
+    $("#secondaryLabel").textContent=f.secondary.title;
+    $("#secondaryValue").textContent=pct(b.n,b.d)+"% → "+pct(a.n,a.d)+"%";
+    $("#secondaryCounts").textContent=b.n+"/"+b.d+" before · "+a.n+"/"+a.d+" after";
+  }
   $("#funnelTitle").textContent=f.funnelTitle;
   $("#funnelSubtitle").textContent=f.funnelSubtitle;
   const base=f.steps[0][1];
