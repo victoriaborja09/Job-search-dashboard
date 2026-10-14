@@ -215,7 +215,7 @@ function retentionChart(){
   const W=550,H=112,top=9,left=8,step=(W-16)/(values.length-1);
   const xy=values.map((v,i)=>[left+i*step,H-15-(v-15)/(45-15)*(H-25)]);
   const path=xy.map((v,i)=>(i?"L":"M")+v[0].toFixed(1)+" "+v[1].toFixed(1)).join(" ");
-  const markerIndex=4,markerX=xy[markerIndex]?.[0]||200;
+  const markerIndex=10,markerX=xy[markerIndex]?.[0]||200;
   $("#retentionChart").innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">'+
     '<line x1="0" x2="'+W+'" y1="89" y2="89" stroke="#eee8e2"/>'+
     '<line x1="'+markerX+'" x2="'+markerX+'" y1="0" y2="96" stroke="#b6aca1" stroke-dasharray="3 4"/>'+
