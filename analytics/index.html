@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#fcfcfb">
+  <title>Product Analytics | Applyfolio</title>
+  <meta name="description" content="Applyfolio product analytics and feature performance workspace.">
+  <link rel="stylesheet" href="./styles.css?v=1">
+  <script src="./app.js?v=1" defer></script>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" aria-label="Analytics navigation">
+    <a class="brand" href="../"><span class="logo">Applyfolio</span><span class="brand-sub">PRODUCT INTELLIGENCE</span></a>
+    <nav class="nav">
+      <a class="nav-link active" href="#overview"><span class="nav-icon">⌂</span>Overview</a>
+      <a class="nav-link" href="#feature-impact"><span class="nav-icon">◇</span>Feature impact</a>
+      <a class="nav-link" href="#user-journey"><span class="nav-icon">▤</span>User journey</a>
+      <a class="nav-link" href="#decisions"><span class="nav-icon">◷</span>Product decisions</a>
+      <a class="nav-link" href="#instrumentation"><span class="nav-icon">⊞</span>Instrumentation</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <a href="../">↗ Open Applyfolio</a>
+      <a href="../case-study/">↗ Product case study</a>
+    </div>
+  </aside>
+
+  <main class="main" id="overview">
+    <header class="topbar">
+      <div><div class="eyebrow">WORKSPACE / ANALYTICS</div><h1>Product analytics</h1><p class="lede">From usage patterns to better product decisions.</p></div>
+      <div class="top-controls">
+        <label class="control"><span>Reporting window</span><select id="rangeSelect" aria-label="Reporting window"><option value="4">Last 4 weeks</option><option value="8" selected>Last 8 weeks</option><option value="12">Last 12 weeks</option></select></label>
+        <button type="button" class="button button-outline" id="exportBtn" title="Download the displayed weekly metrics as a CSV">↓ Export CSV</button>
+      </div>
+    </header>
+
+    <section class="metric-grid" aria-label="Product metrics">
+      <article class="metric"><div class="metric-name">Weekly active users <span class="help" title="Distinct accounts performing at least one meaningful action during the latest complete week.">ⓘ</span></div><div class="metric-value" id="wauValue">—</div><div class="metric-foot"><span class="delta" id="wauDelta">—</span><span>vs. prior week</span></div></article>
+      <article class="metric"><div class="metric-name">Jobs saved <span class="help" title="New jobs added across the selected reporting window.">ⓘ</span></div><div class="metric-value" id="jobsValue">—</div><div class="metric-foot"><span class="delta" id="jobsDelta">—</span><span>vs. preceding equal window</span></div></article>
+      <article class="metric"><div class="metric-name">Tasks completed <span class="help" title="Distinct timeline tasks marked complete across the selected reporting window.">ⓘ</span></div><div class="metric-value" id="taskValue">—</div><div class="metric-foot"><span class="delta" id="taskDelta">—</span><span>vs. preceding equal window</span></div></article>
+      <article class="metric"><div class="metric-name">7-day return rate <span class="help" title="Share of the active cohort that performed another meaningful action within the following 7 days.">ⓘ</span></div><div class="metric-value" id="retentionValue">—</div><div class="metric-foot"><span class="delta" id="retentionDelta">—</span><span>percentage points, week over week</span></div></article>
+    </section>
+
+    <section class="viz-row" aria-label="Engagement analysis">
+      <article class="panel chart-panel">
+        <div class="panel-head"><div><div class="eyebrow">01 / PRODUCT HEALTH</div><h2>Engagement over time</h2><p class="subhead">Explore how usage develops across reporting periods.</p></div>
+          <div class="segmented" role="group" aria-label="Engagement metric"><button type="button" data-trend="users" class="selected" aria-pressed="true">Users</button><button type="button" data-trend="sessions" aria-pressed="false">Sessions</button><button type="button" data-trend="jobs" aria-pressed="false">Jobs saved</button></div>
+        </div>
+        <div id="engagementChart" class="line-chart" role="img" aria-label="Weekly engagement trend"></div>
+        <div class="chart-footer"><span id="trendSummary">—</span><span>Weekly observations</span></div>
+      </article>
+      <article class="panel workflow-panel">
+        <div class="eyebrow">02 / ENGAGEMENT MIX</div><h2>Feature usage</h2><p class="subhead">Tracked interactions in the selected period.</p>
+        <div id="workflowBars" class="workflow-bars"></div>
+        <p class="fine-print">Event counts, not unique users. A person can trigger a feature more than once.</p>
+      </article>
+    </section>
+
+    <section id="feature-impact" class="section-block">
+      <div class="section-heading"><div><div class="eyebrow">03 / RELEASE ANALYSIS</div><h2>What changed after a feature shipped?</h2><p class="subhead">Compare an outcome before and after release, then decide what to test next.</p></div></div>
+      <div class="feature-tabs" id="featureTabs" role="tablist" aria-label="Select a feature release">
+        <button type="button" role="tab" aria-selected="true" class="active" data-feature="networking"><span>01</span> Contacts & networking tools</button>
+        <button type="button" role="tab" aria-selected="false" data-feature="priority"><span>02</span> Priority & next steps</button>
+        <button type="button" role="tab" aria-selected="false" data-feature="folders"><span>03</span> Interactive folders</button>
+      </div>
+      <div class="feature-content">
+        <article class="panel feature-story">
+          <div class="feature-meta"><span id="featureDate">RELEASE</span><span id="featureStage" class="chip">Measurement</span></div>
+          <h3 id="featureTitle">Contacts & networking tools</h3>
+          <div class="narrative-row"><span>PROBLEM</span><p id="featureProblem"></p></div>
+          <div class="narrative-row"><span>HYPOTHESIS</span><p id="featureHypothesis"></p></div>
+          <div class="narrative-row"><span>SUCCESS METRIC</span><p id="featureMetric"></p></div>
+          <div class="narrative-row"><span>GUARDRAIL</span><p id="featureGuardrail"></p></div>
+        </article>
+        <article class="panel impact-panel">
+          <div class="eyebrow">OUTCOME / BEFORE VS AFTER</div>
+          <h3 id="impactTitle">Contact creation rate</h3>
+          <div class="impact-numbers">
+            <div><span class="tiny-label">BEFORE</span><strong id="impactBefore">—</strong><small id="impactBeforeN">—</small></div>
+            <span class="impact-arrow">→</span>
+            <div><span class="tiny-label">AFTER</span><strong id="impactAfter">—</strong><small id="impactAfterN">—</small></div>
+          </div>
+          <div class="impact-bars"><div><span>Before</span><div class="bar-rail"><div id="beforeBar" class="bar-fill before"></div></div></div><div><span>After</span><div class="bar-rail"><div id="afterBar" class="bar-fill after"></div></div></div></div>
+          <div class="impact-change"><strong id="impactLift">—</strong><span id="impactLiftContext">change in primary metric</span></div>
+          <p class="fine-print" id="impactNote">Pre/post comparisons show association, not proof that the release caused the change.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="viz-row second" id="user-journey">
+      <article class="panel">
+        <div class="eyebrow">04 / BEHAVIOR</div><h2 id="funnelTitle">Networking adoption funnel</h2><p class="subhead" id="funnelSubtitle">Where users continue and where they drop off.</p>
+        <div class="funnel" id="funnelChart"></div>
+        <div class="funnel-summary" id="funnelSummary">—</div>
+      </article>
+      <article class="panel">
+        <div class="eyebrow">05 / FOLLOW-THROUGH</div><h2>Retention & repeat use</h2><p class="subhead">Changes in returning-user behavior around the networking launch.</p>
+        <div class="retention-pair"><div class="retention-block"><span>Before</span><strong>50%</strong><small>84 / 168 users returned</small></div><div class="retention-block"><span>After</span><strong>57%</strong><small>120 / 211 users returned</small></div></div>
+        <div id="retentionChart" class="mini-retention" role="img" aria-label="Weekly return rate chart"></div>
+        <div class="observation"><span class="observation-icon">↗</span><p>The return-rate increase is directionally encouraging. Changing cohort mix could also explain some of the movement.</p></div>
+      </article>
+    </section>
+
+    <section class="section-block" id="decisions">
+      <div class="section-heading"><div><div class="eyebrow">06 / PRODUCT ITERATION</div><h2>From signals to decisions</h2><p class="subhead">Translate measured behavior into the next product question.</p></div></div>
+      <div class="decisions-grid" id="decisionCards"></div>
+    </section>
+
+    <section class="section-block instrumentation" id="instrumentation">
+      <div class="section-heading"><div><div class="eyebrow">07 / MEASUREMENT DESIGN</div><h2>Events & definitions</h2><p class="subhead">A consistent event vocabulary makes feature experiments measurable.</p></div>
+        <button type="button" class="button button-outline" id="toggleEvents" aria-expanded="false" aria-controls="eventDetails">View event taxonomy <span id="eventsChevron">⌄</span></button>
+      </div>
+      <div id="eventDetails" hidden>
+        <table><thead><tr><th>Event</th><th>Trigger</th><th>Properties</th></tr></thead><tbody id="eventTable"></tbody></table>
+      </div>
+    </section>
+    <footer>Applyfolio <span>Product intelligence</span> <a href="../">Return to product ↗</a></footer>
+  </main>
+</div>
+</body>
+</html>
