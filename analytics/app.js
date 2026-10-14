@@ -342,15 +342,6 @@ function eventsPanel(){
     "<tr><td>"+escaped(name)+"</td><td>"+escaped(trigger)+"</td><td>"+escaped(properties)+"</td></tr>"
   ).join("");
 }
-function exportCsv(){
-  const data=list();
-  const headings=["week","weekly_active_users","sessions","jobs_saved","tasks_completed","job_detail_opens","folder_opens","networking_tool_opens","contacts_added","seven_day_return_rate_pct","priority_updates"];
-  const fields=["label","users","sessions","jobs","tasks","jobViews","folderOpens","toolClicks","contacts","return7","priorities"];
-  const csv=[headings.join(","),...data.map(row=>fields.map(key=>row[key]).join(","))].join("\r\n");
-  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-  const a=document.createElement("a");a.href=url;a.download="applyfolio-analytics-"+state.range+"-weeks.csv";document.body.append(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),2000);
-}
 function refresh(){kpis();lineChart();workflows();featurePanel();}
 $("#rangeSelect").addEventListener("change",e=>{state.range=Number(e.target.value);refresh();});
 $$("[data-trend]").forEach(button=>button.addEventListener("click",()=>{
@@ -366,7 +357,6 @@ $("#toggleEvents").addEventListener("click",()=>{
   $("#toggleEvents").setAttribute("aria-expanded",String(!panel.hidden));
   $("#eventsChevron").textContent=panel.hidden?"⌄":"⌃";
 });
-$("#exportBtn").addEventListener("click",exportCsv);
 $$(".nav-link").forEach(link=>link.addEventListener("click",()=>{
   $$(".nav-link").forEach(el=>el.classList.toggle("active",el===link));
 }));
