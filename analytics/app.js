@@ -6,80 +6,78 @@ const $$=s=>Array.from(document.querySelectorAll(s));
 const format=n=>Math.round(n).toLocaleString("en-US");
 const pct=(num,den)=>den?Math.round(num/den*100):0;
 const escaped=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const rows=Array.from({length:24},(_,index)=>{
-  const n=index+1;
-  const users=Math.max(30,Math.round(42+n*2.05+Math.sin(n*1.3)*3+(n>=17?7:0)));
+/* Small-campus recruitment scenario, April–October. Weeks 13–24 are reconciled to
+   the 4/8/12-week totals used throughout the page. All counts are illustrative. */
+const userCounts=[5,9,14,21,28,34,27,24,17,16,15,18,17,21,18,20,24,27,25,28,32,38,34,40];
+const sessionCounts=[9,17,30,45,67,80,64,54,36,34,31,38,34,41,36,39,63,73,67,77,83,94,86,97];
+const jobCounts=[7,14,22,38,48,61,45,35,28,24,26,31,44,49,51,56,49,55,50,56,57,69,59,65];
+const taskCounts=[1,3,6,10,15,19,15,12,8,7,6,9,12,16,15,17,17,20,18,20,20,25,22,23];
+const returningCounts=[1,2,3,5,7,8,7,6,4,4,4,5,4,6,5,6,7,8,7,9,10,12,11,13];
+const uniquePeriodUsers={4:78,8:99,12:118};
+const priorPeriodUsers={4:62,8:72,12:86};
+const rows=userCounts.map((users,index)=>{
+  const n=index+1,jobs=jobCounts[index],sessions=sessionCounts[index];
   return {
     n,label:"W"+String(n).padStart(2,"0"),
-    users,
-    sessions:Math.round(users*(2.2+n*.035)),
-    jobs:Math.round(users*(1.91+n*.018)),
-    tasks:Math.round(users*(1.12+n*.03)),
-    jobViews:Math.round(users*(2.5+n*.058)),
-    folderOpens:n>=23?Math.round(users*1.62):Math.round(users*.95),
-    toolClicks:n>=17?Math.round(users*.69):0,
-    contacts:n>=17?Math.round(users*.38):Math.round(users*.18),
-    return7:Math.min(60,Math.round(42+n*.48+(n>=17?3:0))),
-    priorities:n>=20?Math.round(users*.35):0
+    users,sessions,jobs,
+    tasks:taskCounts[index],
+    jobViews:Math.round(jobs*1.8+users*1.6),
+    folderOpens:n>=23?Math.round(sessions*.44):0,
+    toolClicks:n===23?10:n===24?16:0,
+    contacts:n===23?7:n===24?10:Math.round(users*.11),
+    returning:returningCounts[index],
+    return7:Math.round(returningCounts[index]/users*100),
+    priorities:n>=21?[6,9,10,8][n-21]:0
   };
 });
-rows[23].users=101;
-rows[23].sessions=338;
-rows[23].jobs=252;
-rows[23].tasks=194;
-rows[23].jobViews=389;
-rows[23].folderOpens=167;
-rows[23].toolClicks=69;
-rows[23].contacts=54;
-rows[23].return7=58;
 const sample={
   networking:{
-    title:"Contacts & networking tools",date:"W17 / FEATURE RELEASE",stage:"Follow-up analysis",
+    title:"Contacts & networking tools",date:"NETWORKING / RELEASE COMPARISON",stage:"Follow-up analysis",
     problem:"Basic contact tracking was available, but finding relevant people still required a separate research workflow.",
     hypothesis:"Putting Apollo and a tailored ChatGPT connection-research prompt beside saved contacts will increase the share of engaged users who record a professional contact.",
     metric:"Share of engaged users who save at least one contact within the measurement window.",
     guardrail:"Monitor return rate and whether users still complete core job-tracking tasks.",
     metricTitle:"Users recording a contact",
-    before:{n:27,d:168},after:{n:74,d:211},
+    before:{n:7,d:58},after:{n:13,d:67},
     funnelTitle:"Networking adoption funnel",
     funnelSubtitle:"Distinct users in the post-release observation cohort.",
-    steps:[["Engaged users",211],["Viewed a job file",173],["Opened Apollo / ChatGPT",93],["Saved a contact after tool use",41]],
-    summary:"41 of 93 networking-tool users subsequently saved a contact (44%). Helping people move from research to recordkeeping is the next opportunity.",
+    steps:[["Engaged users",67],["Viewed a job file",51],["Opened Apollo / ChatGPT",19],["Saved a contact after tool use",6]],
+    summary:"6 of 19 networking-tool users subsequently saved a contact (32%). A clearer path from research to saved contacts could be worth testing.",
     note:"Pre/post cohorts were not randomized. The change is descriptive and may reflect user mix or timing, not just the release."
   },
   priority:{
-    title:"Priority & next steps",date:"W20 / FEATURE RELEASE",stage:"Behavioral readout",
+    title:"Priority & next steps",date:"NEXT STEPS / RELEASE COMPARISON",stage:"Behavioral readout",
     problem:"Users saved opportunities but could lose track of which applications and tasks required attention first.",
     hypothesis:"A priority toggle, task edit controls, and completion actions will increase on-time task follow-through.",
     metric:"Share of users with scheduled tasks who complete at least one within seven days.",
     guardrail:"Check whether tasks are simply being marked complete without associated application activity.",
     metricTitle:"7-day task completion",
-    before:{n:50,d:115},after:{n:71,d:125},
+    before:{n:19,d:45},after:{n:26,d:51},
     funnelTitle:"Priority workflow funnel",
     funnelSubtitle:"Users with a scheduled action in the post-release cohort.",
-    steps:[["Users with scheduled actions",125],["Viewed next steps",100],["Marked a role as priority",62],["Completed a priority task",42]],
-    summary:"42 of 62 users who assigned priority completed a linked task. The next test is whether the priority signal is visible enough in folder view.",
+    steps:[["Users with scheduled actions",51],["Viewed next steps",44],["Marked a role as priority",28],["Completed a priority task",17]],
+    summary:"17 of 28 users who marked a role as priority completed a linked task. The next question is how clearly the next action is surfaced.",
     note:"Different cohort sizes and nonrandomized periods limit causal interpretation."
   },
   folders:{
-    title:"Interactive folders",date:"W23 / FEATURE RELEASE",stage:"Early readout",
+    title:"Interactive folders",date:"FOLDERS / RELEASE COMPARISON",stage:"Early readout",
     problem:"The original application list offered limited visual distinction between saved, in-progress, and interviewed roles.",
     hypothesis:"Larger status folders and a more focused job-file view will help users find and reopen relevant opportunities.",
     metric:"Share of application-discovery sessions that lead to opening a job's details, before and after the navigation redesign.",
     guardrail:"Monitor page load and accidental openings; interaction volume alone is not a success measure.",
     metricTitle:"Discovery-to-detail conversion",
-    before:{n:62,d:154},after:{n:76,d:169},
+    before:{n:81,d:195},after:{n:92,d:202},
     funnelTitle:"Folder discovery funnel",
     funnelSubtitle:"Post-release sessions in the early observation window.",
-    steps:[["Eligible sessions",169],["Opened a folder",150],["Browsed job cards",102],["Opened a job file",76]],
-    summary:"76 of 169 eligible sessions reached a job file. The comparison uses discovery sessions on either interface and spans a short observation window.",
+    steps:[["Eligible sessions",202],["Opened a folder",163],["Browsed job cards",131],["Opened a job file",92]],
+    summary:"92 of 202 eligible sessions reached a job file. The comparison uses discovery sessions on either interface and spans a short observation window.",
     note:"This is an early readout with a small time window. More observation is needed before attributing improvement to the redesign."
   }
 };
 const decisions=[
-  {id:"01 / NETWORKING",title:"Reduce the tool-to-contact gap",copy:"Research tools generate interest, but many users do not save a contact afterward. Test a clearer Add contact action alongside the networking tools.",metric:"41 / 93 tool users saved a contact"},
-  {id:"02 / TASK WORKFLOW",title:"Make priority more actionable",copy:"Priority works best when it connects directly to the next task. Consider highlighting a pending follow-up inside the priority-marked job file.",metric:"42 / 62 priority users completed a linked task"},
-  {id:"03 / DISCOVERY",title:"Optimize scanning before adding motion",copy:"Job-file conversion is more meaningful than the number of folder animations. Measure how quickly users find an application before changing folder behavior again.",metric:"45% folder-to-detail conversion"}
+  {id:"01 / NETWORKING",title:"Reduce the tool-to-contact gap",copy:"Research tools generate interest, but many users do not save a contact afterward. Test a clearer Add contact action alongside the networking tools.",metric:"6 / 19 tool users saved a contact"},
+  {id:"02 / TASK WORKFLOW",title:"Make priority more actionable",copy:"Priority works best when it connects directly to the next task. Consider highlighting a pending follow-up inside the priority-marked job file.",metric:"17 / 28 priority users completed a linked task"},
+  {id:"03 / DISCOVERY",title:"Optimize scanning before adding motion",copy:"Job-file conversion is more meaningful than the number of folder animations. Measure how quickly users find an application before changing folder behavior again.",metric:"46% discovery-to-detail conversion"}
 ];
 const taxonomy=[
   ["job_created","A new job is saved successfully","job_id, role_type, city, source"],
@@ -102,17 +100,27 @@ function setDelta(selector,value,suffix="%"){
   el.classList.toggle("neutral",rounded==null||rounded===0);
 }
 function kpis(){
-  const w=list(),latest=w[w.length-1],previous=w[w.length-2];
+  const w=list();
   const prior=rows.slice(Math.max(0,rows.length-state.range*2),rows.length-state.range);
-  $("#wauValue").textContent=format(latest.users);
-  $("#jobsValue").textContent=format(sum(w,"jobs"));
-  $("#taskValue").textContent=format(sum(w,"tasks"));
-  $("#retentionValue").textContent=latest.return7+"%";
-  setDelta("#wauDelta",(latest.users-previous.users)/previous.users*100);
-  const jobsPrior=sum(prior,"jobs"),tasksPrior=sum(prior,"tasks");
-  setDelta("#jobsDelta",jobsPrior&&prior.length===w.length?(sum(w,"jobs")-jobsPrior)/jobsPrior*100:NaN);
-  setDelta("#taskDelta",tasksPrior&&prior.length===w.length?(sum(w,"tasks")-tasksPrior)/tasksPrior*100:NaN);
-  setDelta("#retentionDelta",latest.return7-previous.return7," pp");
+  const currentUnique=uniquePeriodUsers[state.range],priorUnique=priorPeriodUsers[state.range];
+  const average=sum(w,"users")/w.length,priorAverage=sum(prior,"users")/Math.max(1,prior.length);
+  const saved=sum(w,"jobs"),priorSaved=sum(prior,"jobs");
+  const tasks=sum(w,"tasks"),priorTasks=sum(prior,"tasks");
+  const retention=sum(w,"returning")/sum(w,"users")*100;
+  const priorRetention=sum(prior,"returning")/sum(prior,"users")*100;
+
+  $("#wauValue").textContent=format(average);
+  $("#uniqueValue").textContent=format(currentUnique);
+  $("#jobsValue").textContent=format(saved);
+  $("#jobsPerUserValue").textContent=(saved/currentUnique).toFixed(1);
+  $("#taskValue").textContent=format(tasks);
+  $("#retentionValue").textContent=Math.round(retention)+"%";
+
+  setDelta("#wauDelta",(average-priorAverage)/priorAverage*100);
+  setDelta("#uniqueDelta",(currentUnique-priorUnique)/priorUnique*100);
+  setDelta("#jobsDelta",priorSaved?(saved-priorSaved)/priorSaved*100:NaN);
+  setDelta("#taskDelta",priorTasks?(tasks-priorTasks)/priorTasks*100:NaN);
+  setDelta("#retentionDelta",retention-priorRetention," pp");
 }
 function polylineChart(data,key){
   const width=680,height=237,left=34,right=20,top=16,bottom=30;
@@ -205,9 +213,9 @@ function featurePanel(){
 function retentionChart(){
   const values=rows.slice(12).map(x=>x.return7);
   const W=550,H=112,top=9,left=8,step=(W-16)/(values.length-1);
-  const xy=values.map((v,i)=>[left+i*step,H-15-(v-35)/(65-35)*(H-25)]);
+  const xy=values.map((v,i)=>[left+i*step,H-15-(v-15)/(45-15)*(H-25)]);
   const path=xy.map((v,i)=>(i?"L":"M")+v[0].toFixed(1)+" "+v[1].toFixed(1)).join(" ");
-  const markerIndex=4,markerX=xy[markerIndex]?.[0]||200;
+  const markerIndex=10,markerX=xy[markerIndex]?.[0]||200;
   $("#retentionChart").innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">'+
     '<line x1="0" x2="'+W+'" y1="89" y2="89" stroke="#eee8e2"/>'+
     '<line x1="'+markerX+'" x2="'+markerX+'" y1="0" y2="96" stroke="#b6aca1" stroke-dasharray="3 4"/>'+
