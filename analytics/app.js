@@ -168,18 +168,6 @@ const decisions=[
   {id:"02 / TASK WORKFLOW",title:"Make priority more actionable",copy:"Priority works best when it connects directly to the next task. Consider highlighting a pending follow-up inside the priority-marked job file.",metric:"17 / 28 priority users completed a linked task"},
   {id:"03 / DISCOVERY",title:"Optimize scanning before adding motion",copy:"Job-file conversion is more meaningful than the number of folder animations. Measure how quickly users find an application before changing folder behavior again.",metric:"46% discovery-to-detail conversion"}
 ];
-const taxonomy=[
-  ["job_created","A new job is saved successfully","job_id, role_type, city, source"],
-  ["job_detail_opened","A user opens an individual job file","job_id, entry_surface, status"],
-  ["folder_opened","A status folder opens","folder_status, item_count"],
-  ["networking_tool_opened","Apollo or ChatGPT shortcut is clicked","user_id, job_id, tool_name, clicked_at"],
-  ["contact_created","A contact record is saved to a job","user_id, job_id, contact_id, saved_at"],
-  ["contact_outreach_recorded","Email / message sent date is present on a saved contact","user_id, job_id, contact_id, last"],
-  ["contact_followup_scheduled","Follow-up date is present on a saved contact","user_id, job_id, contact_id, followUp"],
-  ["priority_updated","Priority is enabled or disabled for a job","job_id, priority_state"],
-  ["task_completed","A tracked timeline task is marked complete","job_id, task_id, completion_time"],
-  ["session_started","First meaningful activity after a period of inactivity","account_id, device_type"]
-];
 const state={range:27,trend:"users",feature:"networking"};
 const sum=(items,key)=>items.reduce((a,item)=>a+item[key],0);
 function list(){return rows.slice(-state.range)}
@@ -337,11 +325,6 @@ function decisionsPanel(){
     '<p>'+escaped(x.copy)+'</p><div class="decision-metric">'+escaped(x.metric)+'</div></article>'
   ).join("");
 }
-function eventsPanel(){
-  $("#eventTable").innerHTML=taxonomy.map(([name,trigger,properties])=>
-    "<tr><td>"+escaped(name)+"</td><td>"+escaped(trigger)+"</td><td>"+escaped(properties)+"</td></tr>"
-  ).join("");
-}
 function refresh(){kpis();lineChart();workflows();featurePanel();}
 $("#rangeSelect").addEventListener("change",e=>{state.range=Number(e.target.value);refresh();});
 $$("[data-trend]").forEach(button=>button.addEventListener("click",()=>{
@@ -352,13 +335,8 @@ $$("[data-trend]").forEach(button=>button.addEventListener("click",()=>{
 $$("[data-feature]").forEach(button=>button.addEventListener("click",()=>{
   state.feature=button.dataset.feature;featurePanel();
 }));
-$("#toggleEvents").addEventListener("click",()=>{
-  const panel=$("#eventDetails");panel.hidden=!panel.hidden;
-  $("#toggleEvents").setAttribute("aria-expanded",String(!panel.hidden));
-  $("#eventsChevron").textContent=panel.hidden?"⌄":"⌃";
-});
 $$(".nav-link").forEach(link=>link.addEventListener("click",()=>{
   $$(".nav-link").forEach(el=>el.classList.toggle("active",el===link));
 }));
-decisionsPanel();eventsPanel();retentionChart();refresh();
+decisionsPanel();retentionChart();refresh();
 })();
