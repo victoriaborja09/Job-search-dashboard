@@ -27,6 +27,47 @@
 .dash-bottom{display:grid;grid-template-columns:1.5fr 1fr;gap:10px;margin-top:14px}.chart-group{display:flex;justify-content:space-around;align-items:center;gap:8px}.pie{width:82px;height:82px;border-radius:100%;background:conic-gradient(#405b62 0 41%,#98ada2 41% 73%,#dac7aa 73% 100%);position:relative}.pie:after{content:"";position:absolute;inset:20px;border-radius:100%;background:#fffdf9}.chart-legend{font-size:9px;color:#7c746c;line-height:1.9}
 /* Offer compare */
 .offer-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}.offer-grid-inner{display:grid;grid-template-columns:1fr 1fr;gap:6px}.offer-box{padding:10px;background:#fff;border:1px solid #e6ded3;border-radius:8px}.offer-box label{display:block;font-size:8px;color:#837b72;text-transform:uppercase;margin-bottom:6px}.offer-box strong{font-size:14px}.offer-foot{font-size:11px;color:#355e53;background:#e6efe9;border:1px solid #d5e1d9;margin-top:12px;padding:12px;border-radius:9px;line-height:1.55}
+
+/* Iteration 2: visual previews of the revised experience, using example content. */
+.iteration-gallery{display:grid;gap:18px;margin-top:26px}
+.iteration-frame{border:1px solid #e4e0da;background:#f8f6f2;overflow:hidden}
+.iteration-frame .it-canvas{overflow-x:auto}
+.it-shell{font:11px/1.4 Arial,Helvetica,sans-serif;background:#fdfcfa;min-width:650px;color:#352b25;display:flex;min-height:290px}
+.it-side{width:126px;flex:none;background:#fff;border-right:1px solid #ebe7e0;padding:19px 12px}
+.it-logo{font:19px Georgia,serif;letter-spacing:-.07em;margin:0 0 25px}
+.it-nav{color:#8b8277;font-size:10px;padding:9px 8px;margin:5px 0}
+.it-nav.is-active{background:#e6edf5;border-radius:7px;color:#2a241f;font-weight:700}
+.it-body{padding:20px 18px 16px;flex:1;min-width:0}
+.it-topline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.it-topline h3{font:normal 23px Georgia,serif;letter-spacing:-.035em;margin:0}
+.it-small{font-size:9px;color:#8d8277}
+.it-action{background:#4a2e27;border-radius:6px;padding:7px 12px;color:white;font-weight:700;font-size:9px}
+.it-overview-charts{display:flex;gap:9px;margin:15px 0 16px}
+.it-chart{background:#fff;border:1px solid #ebe5de;border-radius:8px;min-height:54px;flex:1;padding:9px}
+.it-chart strong{display:block;font:normal 11px Georgia,serif;margin-bottom:6px}
+.it-ring{width:26px;height:26px;float:left;margin-right:10px;border:6px solid #a5bcd6;border-left-color:#4d0e12;border-bottom-color:#f2deac;border-radius:50%}
+.it-gallery-title{font:normal 19px Georgia,serif;letter-spacing:-.03em;margin:0 0 11px}
+.it-folders{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;padding-top:8px}
+.it-folder{position:relative;border-radius:5px 6px 8px 8px;min-height:100px;padding:19px 8px 8px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:0 3px 5px rgba(48,31,19,.07);isolation:isolate}
+.it-folder:before{content:"";width:41%;height:14px;position:absolute;top:-10px;left:0;border-radius:6px 6px 0 0;background:inherit;z-index:-1}
+.it-folder:after{content:"";position:absolute;left:38%;right:8px;top:10px;height:12px;background:#fff9;border-radius:3px 3px 0 0}
+.it-folder strong{font:normal 14px Georgia,serif;line-height:1.06;position:relative;z-index:1}
+.it-folder span{font-size:9px;margin-top:8px;position:relative;z-index:1}
+.it-blue{background:#a5bcd6;color:#263647}.it-yellow{background:#f5e4b9;color:#4b3922}.it-red{background:#823e41;color:#fff8f2}.it-brown{background:#64473b;color:#fff8f2}.it-stone{background:#dfd7cc;color:#493c33}
+.iteration-frame figcaption{background:#fff;padding:11px 14px;font-size:11px;color:#77736e;line-height:1.55;border-top:1px solid #ece7e1}
+.it-folder-scene{background:linear-gradient(rgba(50,41,35,.15),rgba(50,41,35,.15)),#ece6de;min-height:282px;padding:24px 36px;display:flex;justify-content:center;align-items:center}
+.it-open-folder{background:#eee0c7;border:1px solid #d2b98e;border-radius:13px;max-width:550px;width:100%;padding:18px 23px 21px;box-shadow:0 12px 35px rgba(58,38,20,.15);position:relative}
+.it-open-folder:before{content:"";position:absolute;left:25px;top:-12px;width:112px;height:13px;border-radius:9px 9px 0 0;background:#e5d0ab}
+.it-folder-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px}
+.it-folder-heading strong{font:normal 23px Georgia,serif}.it-folder-heading small{display:block;font-size:10px;color:#8d785f;margin-top:3px}
+.it-job-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.it-job-card{min-height:112px;padding:17px 12px 12px;border:1px solid #e4d8c9;background:#fffdf9;box-shadow:0 2px 6px rgba(66,47,31,.055);position:relative;border-radius:6px}
+.it-job-card:before{content:"";position:absolute;top:-5px;left:calc(50% - 8px);width:16px;height:9px;border-radius:2px;background:#5f3029;box-shadow:0 1px 3px #8d7b68}
+.it-job-card strong{display:block;font:normal 18px Georgia,serif;margin:7px 0}
+.it-job-card span{display:block;color:#8d7f71;font-size:10px}
+.it-job-card em{font-style:normal;font-size:9px;display:block;color:#716357;border-top:1px solid #eee4d9;padding-top:10px;margin-top:14px}
+@media(max-width:720px){.iteration-gallery{gap:14px}.it-folder-scene{padding:18px 13px}.it-open-folder{padding:17px 14px}.it-job-cards{gap:6px}.it-job-card{padding:15px 7px 9px}.it-job-card strong{font-size:14px}.it-folder-heading strong{font-size:20px}}
+
 footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--line);padding:27px 0 63px;margin-top:10px;font-size:11px;color:#83847f}
 @media(max-width:950px){.hero{grid-template-columns:1fr;gap:36px;padding:58px 0 70px}.hero p{max-width:680px}.section{grid-template-columns:1fr;gap:18px}.copy{padding:0}.hero h1{font-size:77px}.preview-shell{grid-template-columns:155px minmax(0,1fr)}.preview-aside{padding:16px 11px}.preview-content{padding:19px 16px}.annotated{gap:4px}}
 @media(max-width:650px){.page{padding:0 19px}.top{height:58px;font-size:11px}.hero{padding:47px 0 58px}.hero h1{font-size:63px}.hero p,.copy p{font-size:14px}.section{padding:34px 0 38px}.copy h2{font-size:30px}.feature{padding:32px 0 43px}.preview{overflow-x:auto}.preview-shell{width:660px;min-height:350px}.preview.hero-prev .preview-shell{width:660px}.modal-stage{min-width:535px}.preview.mock-detail,.preview.mock-tasks,.preview.mock-dashboard,.preview.mock-offers{min-width:0}.preview.mock-detail .preview-shell{width:700px}.preview.mock-tasks .preview-shell{width:660px}.preview.mock-dashboard .preview-shell{width:690px}.preview.mock-offers .preview-shell{width:660px}.feature .feature-caption{font-size:11px}.form-preview{width:500px}footer{flex-direction:column;gap:10px}.hero,.section{grid-template-columns:minmax(0,1fr)}.hero>*,.section>*,.copy{min-width:0;max-width:100%}.preview{max-width:100%}}
@@ -45,7 +86,7 @@ footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid 
 <section class="section" id="summary"><div class="section-label"><span class="num">01</span>Summary</div><div class="copy"><p>Applyfolio is a website I made to keep the different parts of a job search in one place. You can save jobs from any source, track applications, record deadlines and next steps, and keep notes and networking contacts connected to the positions they relate to.</p><p>It is designed to be easy to look at and understand. The dashboard shows what you have saved, applied to, or are interviewing for, while bringing upcoming tasks and follow-ups into view. You can also compare offers using salary and living-cost estimates. The goal is to see where everything stands without constantly switching between job sites, emails, spreadsheets, and documents.</p></div></section>
 <section class="section" id="problem"><div class="section-label"><span class="num">02</span>Problem</div><div class="copy"><h2>A job search rarely happens in one place.</h2><p>Applications are submitted through different websites, and each company has its own deadlines and interview process. At the same time, conversations with employees and recruiters happen through email, LinkedIn, and other channels. Those connections matter, but they can become difficult to keep track of once several opportunities are moving at the same time.</p><p>I wanted a straightforward way to see the full picture: which jobs need attention, what comes next, and who I have already spoken with. Rather than another place to find jobs, Applyfolio focuses on keeping track of the search once it has started.</p></div></section>
 <section class="section" id="users"><div class="section-label"><span class="num">03</span>Target users</div><div class="copy"><p>Applyfolio is for anyone actively applying to multiple jobs and managing the deadlines, tasks, and contacts that come with them. I initially had students in mind, particularly those recruiting across several industries where applications open at different times and follow different processes. The same need exists for people changing jobs or exploring opportunities at any career stage.</p></div></section>
-<section class="section" id="solution"><div class="section-label"><span class="num">04</span>Solution</div><div class="copy"><p>The site is organized around a simple process: add a job, keep its details and connections together, and use the dashboard to see what needs to happen next. The examples below show the main screens.</p>
+<section class="section" id="solution"><div class="section-label"><span class="num">04</span>Solution</div><div class="copy"><p>The site is organized around a simple process: add a job, keep its details and connections together, and use the dashboard to see what needs to happen next. The examples below show the initial screens; the redesigned experience is shown in Iteration 2.</p>
 
  <div class="feature"><div class="feature-heading"><div class="feature-title"><span class="feature-index">01</span>Add a job</div><p>Save the basic information for a position, including the deadline, application status, and next action. Jobs can be added manually or by pasting a posting link, which Applyfolio attempts to read when the website allows it.</p></div>
  <div class="preview"><div class="modal-stage"><div class="form-preview"><h4>Add a job</h4><p>Add the information you actually care about. You can edit it later.</p><div class="form-grid-preview"><div class="u-field-block"><label class="u-input-label">Company</label><div class="u-field">Example Company</div></div><div class="u-field-block"><label class="u-input-label">Role</label><div class="u-field">Associate Product Manager</div></div><div class="u-field-block"><label class="u-input-label">City</label><div class="u-field">New York</div></div><div class="u-field-block"><label class="u-input-label">Industry</label><div class="u-field">Technology</div></div><div class="u-field-block"><label class="u-input-label">Status</label><div class="u-field">Saved ▾</div></div><div class="u-field-block"><label class="u-input-label">Deadline</label><div class="u-field">Oct 22, 2026</div></div><div class="u-field-block"><label class="u-input-label">Next action</label><div class="u-field">Tailor application</div></div><div class="u-field-block"><label class="u-input-label">Next action due</label><div class="u-field">Oct 15, 2026</div></div><div class="u-field-block wide"><label class="u-input-label">Job posting URL</label><div class="u-field">https://careers.example.com/...</div></div></div><div class="form-foot"><span class="u-btn ghost">Cancel</span><span class="u-btn primary">Save job</span></div></div></div></div>
@@ -71,7 +112,46 @@ footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid 
  <div class="preview mock-offers"><div class="preview-shell"><div class="preview-aside"><div class="preview-brand">Applyfolio</div><p class="preview-side-note">One place to save, organize, and act on every opportunity.</p><div class="preview-nav">Dashboard</div><div class="preview-nav">All Jobs</div><div class="preview-nav active">Offer Compare</div></div><div class="preview-content"><div class="preview-topbar"><div><h3 class="preview-title">Compare opportunities, not just salary</h3><p class="preview-lede">User-entered estimates, not tax advice.</p></div><span class="u-btn primary">Add another offer</span></div><div class="offer-cols"><div class="u-card"><h4>Offer A · New York</h4><div class="offer-grid-inner"><div class="offer-box"><label>Base salary</label><strong>$125,000</strong></div><div class="offer-box"><label>Bonus</label><strong>$10,000</strong></div><div class="offer-box"><label>Monthly rent</label><strong>$2,800</strong></div><div class="offer-box"><label>Tax estimate</label><strong>30%</strong></div></div></div><div class="u-card"><h4>Offer B · San Francisco</h4><div class="offer-grid-inner"><div class="offer-box"><label>Base salary</label><strong>$145,000</strong></div><div class="offer-box"><label>Bonus</label><strong>$5,000</strong></div><div class="offer-box"><label>Monthly rent</label><strong>$3,100</strong></div><div class="offer-box"><label>Tax estimate</label><strong>32%</strong></div></div></div></div><div class="offer-foot">Compare estimated monthly income after taxes, rent, and fixed costs based on the amounts you enter.</div></div></div></div>
  </div>
 </div></section>
-<section class="section" id="distribution"><div class="section-label"><span class="num">05</span>Distribution</div><div class="copy"><p>To start sharing the project, I put up QR codes around campus linking directly to Applyfolio and sent it to student clubs whose members are actively recruiting. I also shared it beyond campus with students at other universities, including Tufts, MIT, and UCLA.</p><p>The next step is broader outreach beyond college campuses so I can see how useful the product is for people at other career stages who are also managing multiple applications, deadlines, and professional connections at once.</p></div></section>
+
+<section class="section" id="iteration">
+  <div class="section-label"><span class="num">05</span>Iteration 2</div>
+  <div class="copy">
+    <h2>Redesigning around how people navigate their search.</h2>
+    <p>Early user feedback highlighted a need for clearer organization and less visual clutter. I redesigned Applyfolio around five status-based folders, streamlined job cards, and more visible next steps so users can find and act on opportunities faster.</p>
+    <p>To evaluate the changes, I built a product analytics dashboard tracking six KPIs and comparing engagement, retention, and conversion across three feature releases. The measurement framework helps guide subsequent product decisions as real usage data comes in.</p>
+    <div class="iteration-gallery">
+      <figure class="iteration-frame" style="margin:0">
+        <div class="it-canvas">
+          <div class="it-shell" role="img" aria-label="Updated Applyfolio dashboard interface preview with recruiting charts and five colorful stage-based folders">
+            <div class="it-side"><div class="it-logo">Applyfolio</div><div class="it-nav is-active">⌂ &nbsp; Overview</div><div class="it-nav">▤ &nbsp; My folders</div><div class="it-nav">▦ &nbsp; All Jobs</div><div class="it-nav">▣ &nbsp; Calendar</div><div class="it-nav">≋ &nbsp; Offer Compare</div></div>
+            <div class="it-body">
+              <div class="it-topline"><div><h3>Good morning.</h3><div class="it-small">Your recruiting search, all in one place.</div></div><span class="it-action">+ Add job</span></div>
+              <div class="it-overview-charts"><div class="it-chart"><strong>Applications by city</strong><div class="it-ring"></div><span class="it-small">New York · San Francisco</span></div><div class="it-chart"><strong>Applications by role</strong><div class="it-ring"></div><span class="it-small">Product · Research · Strategy</span></div></div>
+              <h4 class="it-gallery-title">My folders</h4>
+              <div class="it-folders"><div class="it-folder it-blue"><strong>Saved Jobs</strong><span>Explore later</span></div><div class="it-folder it-yellow"><strong>In the Works</strong><span>Preparing</span></div><div class="it-folder it-red"><strong>Interviewing</strong><span>Conversations</span></div><div class="it-folder it-brown"><strong>Applied</strong><span>Submitted</span></div><div class="it-folder it-stone"><strong>Projects</strong><span>Portfolio work</span></div></div>
+            </div>
+          </div>
+        </div>
+        <figcaption>Updated overview: application stages are organized into visual folders. Interface preview with example content.</figcaption>
+      </figure>
+      <figure class="iteration-frame" style="margin:0">
+        <div class="it-folder-scene">
+          <div class="it-open-folder" role="img" aria-label="Updated Applyfolio open-folder interface preview with three example job cards">
+            <div class="it-folder-heading"><div><strong>Saved Jobs</strong><small>Opportunities you are keeping track of</small></div><span class="it-small">✕ Close</span></div>
+            <div class="it-job-cards">
+              <div class="it-job-card"><strong>Example Co.</strong><span>Product Associate</span><em>Open job file ↗</em></div>
+              <div class="it-job-card"><strong>Design Studio</strong><span>Product Intern</span><em>Open job file ↗</em></div>
+              <div class="it-job-card"><strong>Tech Company</strong><span>Strategy Analyst</span><em>Open job file ↗</em></div>
+            </div>
+          </div>
+        </div>
+        <figcaption>Focused folder view: jobs appear as individual cards within their application stage. Interface preview with example content.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="distribution"><div class="section-label"><span class="num">06</span>Distribution</div><div class="copy"><p>To start sharing the project, I put up QR codes around campus linking directly to Applyfolio and sent it to student clubs whose members are actively recruiting. I also shared it beyond campus with students at other universities, including Tufts, MIT, and UCLA.</p><p>The next step is broader outreach beyond college campuses so I can see how useful the product is for people at other career stages who are also managing multiple applications, deadlines, and professional connections at once.</p></div></section>
 </main>
 <footer><span>Applyfolio · Victoria Borja</span><span><a href="https://applyfolio.online" target="_blank" rel="noopener noreferrer">Live website</a> &nbsp;·&nbsp; <a href="https://github.com/victoriaborja09/Job-search-dashboard" target="_blank" rel="noopener noreferrer">GitHub</a></span></footer>
 </div>
