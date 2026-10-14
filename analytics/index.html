@@ -7,7 +7,7 @@
   <title>Product Analytics | Applyfolio</title>
   <meta name="description" content="Applyfolio product analytics and feature performance workspace.">
   <link rel="stylesheet" href="./styles.css?v=2">
-  <script src="./app.js?v=3" defer></script>
+  <script src="./app.js?v=4" defer></script>
 </head>
 <body>
 <div class="shell">
@@ -70,6 +70,11 @@
           </div>
           <div class="impact-bars"><div><span>Before</span><div class="bar-rail"><div id="beforeBar" class="bar-fill before"></div></div></div><div><span>After</span><div class="bar-rail"><div id="afterBar" class="bar-fill after"></div></div></div></div>
           <div class="impact-change"><strong id="impactLift">—</strong><span id="impactLiftContext">change in primary metric</span></div>
+          <div class="impact-secondary" id="impactSecondary" hidden>
+            <span id="secondaryLabel">Users saving a contact</span>
+            <strong id="secondaryValue">—</strong>
+            <small id="secondaryCounts">—</small>
+          </div>
           <p class="fine-print" id="impactNote">Pre/post comparisons show association, not proof that the release caused the change.</p>
         </article>
       </div>
