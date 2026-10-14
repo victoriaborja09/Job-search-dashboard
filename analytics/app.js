@@ -68,11 +68,11 @@ function networkingCohort(kind){
   for(let i=0;i<contactCreators;i++){
     const toolAssisted=after&&i<9;
     const week=after?(toolAssisted?(i<5?0:1):(i<11?0:1)):(i<4?0:1);
-    const savedDate=after?(week===0?"2026-09-29":"2026-10-06"):(week===0?"2026-09-16":"2026-09-23");
     const outreach=after?(toolAssisted?i<6:i<12):i<5;
     const followUp=outreach&&(after?(toolAssisted?i<3:i===9):i<2);
     const entries=countContactsPerUser(i);
     for(let k=0;k<entries;k++){
+      const savedDate=after?(week===0&&k===0?"2026-09-29":"2026-10-06"):(week===0?"2026-09-16":"2026-09-23");
       const jobId=k===0?"company-"+i:"secondary-company-"+i;
       users[i].contacts.push({
         jobId,savedAt:savedDate+"T12:00:00Z",
