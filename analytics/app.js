@@ -6,28 +6,34 @@ const $$=s=>Array.from(document.querySelectorAll(s));
 const format=n=>Math.round(n).toLocaleString("en-US");
 const pct=(num,den)=>den?Math.round(num/den*100):0;
 const escaped=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-/* Small-campus recruitment scenario, April–October. Weeks 13–24 are reconciled to
-   the 4/8/12-week totals used throughout the page. All counts are illustrative. */
-const userCounts=[5,9,14,21,28,34,27,24,17,16,15,18,17,21,18,20,24,27,25,28,32,38,34,40];
-const sessionCounts=[9,17,30,45,67,80,64,54,36,34,31,38,34,41,36,39,63,73,67,77,83,94,86,97];
-const jobCounts=[7,14,22,38,48,61,45,35,28,24,26,31,44,49,51,56,49,55,50,56,57,69,59,65];
-const taskCounts=[1,3,6,10,15,19,15,12,8,7,6,9,12,16,15,17,17,20,18,20,20,25,22,23];
-const returningCounts=[1,2,3,5,7,8,7,6,4,4,4,5,4,6,5,6,7,8,7,9,10,12,11,13];
-const uniquePeriodUsers={4:78,8:99,12:118};
+/* Illustrative campus rollout: April 6 through October 11, 2026 (last
+   complete reporting week starts October 5). Slow spring adoption, a summer
+   recruiting lull, and renewed fall activity. Weeks 16-27 reconcile exactly
+   to the already-agreed 4/8/12-week aggregates. These are NOT real telemetry. */
+const userCounts=[3,5,8,11,16,23,27,25,20,16,13,11,9,10,12,14,15,20,27,21,25,28,30,32,41,35,36];
+const sessionCounts=[6,12,19,30,36,57,70,59,49,32,31,24,20,23,28,29,34,47,40,57,80,69,74,68,104,81,107];
+const jobCounts=[4,8,12,18,24,38,57,41,35,29,22,16,11,17,25,32,38,72,58,42,55,44,69,84,51,72,43];
+const taskCounts=[0,1,2,3,5,9,12,10,8,6,5,4,3,5,7,12,14,19,15,17,20,16,22,20,28,19,23];
+const returningCounts=[1,1,2,3,4,6,5,5,4,4,3,2,2,3,4,4,6,5,6,7,8,7,9,10,12,11,13];
+const jobDetailViews=[8,13,23,32,51,66,82,78,65,49,41,34,29,37,43,48,57,76,103,80,118,129,112,169,188,153,196];
+// Distinct-user estimates are cohort-level values, never sums of weekly counts.
+const uniquePeriodUsers={4:78,8:99,12:118,27:148};
 const priorPeriodUsers={4:62,8:72,12:86};
+const launchWeekUTC=Date.UTC(2026,3,6);
 const rows=userCounts.map((users,index)=>{
   const n=index+1,jobs=jobCounts[index],sessions=sessionCounts[index];
+  const date=new Date(launchWeekUTC+index*7*24*60*60*1000);
   return {
-    n,label:"W"+String(n).padStart(2,"0"),
+    n,label:date.toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"}),
     users,sessions,jobs,
     tasks:taskCounts[index],
-    jobViews:Math.round(jobs*1.8+users*1.6),
-    folderOpens:n>=23?Math.round(sessions*.44):0,
-    toolClicks:n===23?10:n===24?16:0,
-    contacts:n===23?7:n===24?10:Math.round(users*.11),
+    jobViews:jobDetailViews[index],
+    folderOpens:n>=26?Math.round(sessions*.44):0,
+    toolClicks:n===26?10:n===27?16:0,
+    contacts:n===26?7:n===27?10:Math.round(users*.11),
     returning:returningCounts[index],
     return7:Math.round(returningCounts[index]/users*100),
-    priorities:n>=21?[6,9,10,8][n-21]:0
+    priorities:n>=24?[6,9,10,8][n-24]:0
   };
 });
 const sample={
@@ -89,7 +95,7 @@ const taxonomy=[
   ["task_completed","A tracked timeline task is marked complete","job_id, task_id, completion_time"],
   ["session_started","First meaningful activity after a period of inactivity","account_id, device_type"]
 ];
-const state={range:8,trend:"users",feature:"networking"};
+const state={range:27,trend:"users",feature:"networking"};
 const sum=(items,key)=>items.reduce((a,item)=>a+item[key],0);
 function list(){return rows.slice(-state.range)}
 function setDelta(selector,value,suffix="%"){
@@ -100,15 +106,14 @@ function setDelta(selector,value,suffix="%"){
   el.classList.toggle("neutral",rounded==null||rounded===0);
 }
 function kpis(){
-  const w=list();
-  const prior=rows.slice(Math.max(0,rows.length-state.range*2),rows.length-state.range);
+  const w=list(),sinceLaunch=state.range===27;
+  const prior=sinceLaunch?[]:rows.slice(Math.max(0,rows.length-state.range*2),rows.length-state.range);
   const currentUnique=uniquePeriodUsers[state.range],priorUnique=priorPeriodUsers[state.range];
-  const average=sum(w,"users")/w.length,priorAverage=sum(prior,"users")/Math.max(1,prior.length);
+  const average=sum(w,"users")/w.length,priorAverage=prior.length?sum(prior,"users")/prior.length:NaN;
   const saved=sum(w,"jobs"),priorSaved=sum(prior,"jobs");
   const tasks=sum(w,"tasks"),priorTasks=sum(prior,"tasks");
   const retention=sum(w,"returning")/sum(w,"users")*100;
-  const priorRetention=sum(prior,"returning")/sum(prior,"users")*100;
-
+  const priorRetention=prior.length?sum(prior,"returning")/sum(prior,"users")*100:NaN;
   $("#wauValue").textContent=format(average);
   $("#uniqueValue").textContent=format(currentUnique);
   $("#jobsValue").textContent=format(saved);
@@ -121,6 +126,14 @@ function kpis(){
   setDelta("#jobsDelta",priorSaved?(saved-priorSaved)/priorSaved*100:NaN);
   setDelta("#taskDelta",priorTasks?(tasks-priorTasks)/priorTasks*100:NaN);
   setDelta("#retentionDelta",retention-priorRetention," pp");
+
+  // Since launch has no earlier comparison period.
+  ["#wauDelta","#uniqueDelta","#jobsDelta","#taskDelta","#retentionDelta"].forEach(id=>{
+    const badge=$(id);
+    badge.hidden=sinceLaunch;
+    badge.nextElementSibling.textContent=sinceLaunch?"April–October 2026":
+      id==="#retentionDelta"?"percentage points vs. preceding window":"vs. preceding equal window";
+  });
 }
 function polylineChart(data,key){
   const width=680,height=237,left=34,right=20,top=16,bottom=30;
@@ -136,7 +149,8 @@ function polylineChart(data,key){
   }
   data.forEach((r,i)=>{
     points+=(i?" ":"")+x(i)+","+y(r[key]);
-    if(i===0||i===data.length-1||i%Math.max(1,Math.ceil(data.length/6))===0)
+    const axisStep=Math.max(1,Math.ceil(data.length/6));
+    if(i===0||i===data.length-1||(i%axisStep===0&&data.length-1-i>=axisStep))
       labels+='<text class="axis-text" text-anchor="middle" x="'+x(i)+'" y="'+(height-9)+'">'+r.label+'</text>';
     dots+='<circle class="trend-dot" cx="'+x(i)+'" cy="'+y(r[key])+'" r="4" data-point="'+i+'"/>';
   });
@@ -211,18 +225,18 @@ function featurePanel(){
   });
 }
 function retentionChart(){
-  const values=rows.slice(12).map(x=>x.return7);
+  const recent=rows.slice(-15),values=recent.map(x=>x.return7);
   const W=550,H=112,top=9,left=8,step=(W-16)/(values.length-1);
   const xy=values.map((v,i)=>[left+i*step,H-15-(v-15)/(45-15)*(H-25)]);
   const path=xy.map((v,i)=>(i?"L":"M")+v[0].toFixed(1)+" "+v[1].toFixed(1)).join(" ");
-  const markerIndex=10,markerX=xy[markerIndex]?.[0]||200;
+  const markerIndex=13,markerX=xy[markerIndex]?.[0]||200;
   $("#retentionChart").innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">'+
     '<line x1="0" x2="'+W+'" y1="89" y2="89" stroke="#eee8e2"/>'+
     '<line x1="'+markerX+'" x2="'+markerX+'" y1="0" y2="96" stroke="#b6aca1" stroke-dasharray="3 4"/>'+
     '<path d="'+path+'" fill="none" stroke="#a5bcd6" stroke-width="3" stroke-linejoin="round"/>'+
     '<circle cx="'+xy[xy.length-1][0]+'" cy="'+xy[xy.length-1][1]+'" r="4" fill="#4d0e12"/>'+
-    '<text x="10" y="108" fill="#9e9286" font-size="10">W13</text>'+
-    '<text x="'+(W-40)+'" y="108" fill="#9e9286" font-size="10">W24</text></svg>';
+    '<text x="10" y="108" fill="#9e9286" font-size="10">'+recent[0].label+'</text>'+
+    '<text x="'+(W-40)+'" y="108" fill="#9e9286" font-size="10">'+recent[recent.length-1].label+'</text></svg>';
 }
 function decisionsPanel(){
   $("#decisionCards").innerHTML=decisions.map(x=>
