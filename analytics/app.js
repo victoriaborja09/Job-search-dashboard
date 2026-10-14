@@ -46,8 +46,6 @@ function networkingCohort(kind){
   const after=kind==="after";
   const total=after?67:58,viewers=after?51:44;
   const contactCreators=after?13:7,toolUsers=after?19:0;
-  const firstMonday=after?"2026-09-28":"2026-09-14";
-  const secondMonday=after?"2026-10-05":"2026-09-21";
   const monday=after?["2026-09-28","2026-10-05"]:["2026-09-14","2026-09-21"];
   const users=Array.from({length:total},(_,i)=>({
     id:kind+"-student-"+(i+1),
@@ -58,18 +56,19 @@ function networkingCohort(kind){
   if(after){
     // 19 distinct tool users, 26 clicks (10 then 16 across the two weeks).
     for(let i=0;i<toolUsers;i++){
-      const week=i<10?0:1;
+      const week=(i<5||(i>=9&&i<14))?0:1;
       users[i].toolClicks.push({jobId:"company-"+i,tool:i%2?"ChatGPT":"Apollo",at:monday[week]+"T09:00:00Z"});
-      if(i>=10&&i<17)users[i].toolClicks.push({jobId:"company-"+i,tool:i%2?"Apollo":"ChatGPT",at:"2026-10-07T09:00:00Z"});
+      if(i===5||i===6||i>=14)users[i].toolClicks.push({jobId:"company-"+i,tool:i%2?"Apollo":"ChatGPT",at:"2026-10-07T09:00:00Z"});
     }
   }
   const countContactsPerUser=i=>
-    after?(i<13?(i>=9&&i<13?2:1):0):(i<7?(i>=5?2:1):0);
-  for(let i=0;i<contactCreators;i++){
+    after?(i<9?1:(i>=19&&i<23?2:0)):(i<7?(i>=5?2:1):0);
+  for(let i=0;i<total;i++){
+    if(countContactsPerUser(i)===0)continue;
     const toolAssisted=after&&i<9;
-    const week=after?(toolAssisted?(i<5?0:1):(i<11?0:1)):(i<4?0:1);
-    const outreach=after?(toolAssisted?i<6:i<12):i<5;
-    const followUp=outreach&&(after?(toolAssisted?i<3:i===9):i<2);
+    const week=after?(toolAssisted?(i<5?0:1):(i<21?0:1)):(i<4?0:1);
+    const outreach=after?(toolAssisted?i<6:i<22):i<5;
+    const followUp=outreach&&(after?(toolAssisted?i<3:i===19):i<2);
     const entries=countContactsPerUser(i);
     for(let k=0;k<entries;k++){
       const savedDate=after?(week===0&&k===0?"2026-09-29":"2026-10-06"):(week===0?"2026-09-16":"2026-09-23");
