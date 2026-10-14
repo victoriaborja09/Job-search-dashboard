@@ -4,7 +4,7 @@
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
 const format=n=>Math.round(n).toLocaleString("en-US");
-const pct=(num,den)=>den?Math.round(num/den*100):0;
+const pct=(num,den)=>den?(num/den*100).toFixed(1):"0.0";
 const escaped=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 /* Illustrative campus rollout: April 6 through October 11, 2026 (last
    complete reporting week starts October 5). Slow spring adoption, a summer
