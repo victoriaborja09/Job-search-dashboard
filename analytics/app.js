@@ -35,8 +35,8 @@ rows[23].return7=58;
 const sample={
   networking:{
     title:"Contacts & networking tools",date:"W17 / FEATURE RELEASE",stage:"Follow-up analysis",
-    problem:"Job seekers could save opportunities, but had no structured way to track people connected to each application.",
-    hypothesis:"Adding saved contacts, an Apollo shortcut, and a tailored ChatGPT connection-research prompt will increase the share of engaged users who record a professional contact.",
+    problem:"Basic contact tracking was available, but finding relevant people still required a separate research workflow.",
+    hypothesis:"Putting Apollo and a tailored ChatGPT connection-research prompt beside saved contacts will increase the share of engaged users who record a professional contact.",
     metric:"Share of engaged users who save at least one contact within the measurement window.",
     guardrail:"Monitor return rate and whether users still complete core job-tracking tasks.",
     metricTitle:"Users recording a contact",
@@ -65,14 +65,14 @@ const sample={
     title:"Interactive folders",date:"W23 / FEATURE RELEASE",stage:"Early readout",
     problem:"The original application list offered limited visual distinction between saved, in-progress, and interviewed roles.",
     hypothesis:"Larger status folders and a more focused job-file view will help users find and reopen relevant opportunities.",
-    metric:"Share of folder-view sessions that lead to opening a job's details.",
+    metric:"Share of application-discovery sessions that lead to opening a job's details, before and after the navigation redesign.",
     guardrail:"Monitor page load and accidental openings; interaction volume alone is not a success measure.",
-    metricTitle:"Folder-to-detail conversion",
+    metricTitle:"Discovery-to-detail conversion",
     before:{n:62,d:154},after:{n:76,d:169},
     funnelTitle:"Folder discovery funnel",
     funnelSubtitle:"Post-release sessions in the early observation window.",
     steps:[["Eligible sessions",169],["Opened a folder",150],["Browsed job cards",102],["Opened a job file",76]],
-    summary:"76 of 169 eligible sessions reached a job file. The initial comparison is promising but spans only a short observation window.",
+    summary:"76 of 169 eligible sessions reached a job file. The comparison uses discovery sessions on either interface and spans a short observation window.",
     note:"This is an early readout with a small time window. More observation is needed before attributing improvement to the redesign."
   }
 };
@@ -180,8 +180,8 @@ function featurePanel(){
   $("#impactTitle").textContent=f.metricTitle;
   $("#impactBefore").textContent=before+"%";
   $("#impactAfter").textContent=after+"%";
-  $("#impactBeforeN").textContent=f.before.n+" / "+f.before.d+" users or sessions";
-  $("#impactAfterN").textContent=f.after.n+" / "+f.after.d+" users or sessions";
+  $("#impactBeforeN").textContent=f.before.n+" / "+f.before.d+(state.feature==="folders"?" sessions":" users");
+  $("#impactAfterN").textContent=f.after.n+" / "+f.after.d+(state.feature==="folders"?" sessions":" users");
   $("#beforeBar").style.width=beforeRaw+"%";
   $("#afterBar").style.width=afterRaw+"%";
   $("#impactLift").textContent=(difference>0?"+":"")+difference.toFixed(1)+" pp";
