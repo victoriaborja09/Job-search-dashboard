@@ -1,35 +1,46 @@
 # Applyfolio
 
-A recruiting workspace for collecting job opportunities, organizing applications, tracking people and follow-ups, and preparing for interviews.
+**An application-tracking workspace designed to make the job search easier to manage.**
 
-## Current interface
+[Visit Applyfolio](https://applyfolio.online/) · [Read the product case study](https://applyfolio.online/case-study/) · [Explore the analytics dashboard](https://applyfolio.online/analytics/)
 
-- **Overview:** live city and role-type donut charts; click any segment or legend item to explore matching jobs.
-- **Folders:** Saved Jobs, In the Works (the existing `Applying` status), Interviewing, Applied, and Projects & Portfolio.
-- **Folder view:** modal paper-folder interaction with real job cards and six opportunities per page.
-- **Customize colors:** five built-in palette options for each folder, saved to this browser.
-- **Upcoming deadlines / Tasks:** collapsed on the overview until opened. Task completion uses the existing timeline/next-action completion logic.
-- **All Jobs:** filterable full list, retaining the existing job detail page and its contacts, recruiting prompts, timeline, notes, compensation, priority and other controls.
-- **Resources:** the existing editable quick links, available from the sidebar.
-- **Offer Compare:** existing offer comparison screen, unchanged.
+Applyfolio brings saved roles, application progress, recruiter contacts, deadlines, and next actions into one place. It was designed around a recurring job-search problem: information and follow-ups get scattered across job boards, notes, spreadsheets, and inboxes.
 
-## Data and limitations
+## Product experience
 
-Job records, timelines, contacts, quick links, and offers use the existing Supabase account sync and browser-local fallback. The overview and job folders read these same records; no migration or duplicate job dataset is created.
+- **Overview:** Interactive breakdowns by city and role type, with shortcuts into matching applications.
+- **Application folders:** Saved Jobs, In the Works, Interviewing, and Applied, plus a Projects & Portfolio area.
+- **Job details:** Track application status, role links, contacts, timeline events, notes, priority, next actions, and compensation.
+- **Deadlines and tasks:** Surface upcoming requirements and keep follow-ups attached to the relevant application.
+- **Customizable workspace:** Personalize folder colors and organize opportunities without maintaining a separate spreadsheet.
+- **Additional tools:** Quick links, offer comparison, and an analytics dashboard to evaluate product engagement and workflows.
 
-The **Projects & Portfolio** folder offers basic project records (title, description, optional URL) stored **locally on the current device** at this stage. Those project records and folder color selections are **not yet cloud-synced**. This is intentionally separate from the application's existing job state, until the server data model is extended.
+## Product approach
+
+The interface prioritizes quick status recognition and the ability to move from a high-level overview to the next concrete action. The case study documents the design decisions and iterations behind the workspace.
+
+The analytics dashboard illustrates a measurement framework for acquisition, engagement, retention, and conversion. Example or preliminary metrics should not be interpreted as independently verified user outcomes.
+
+## Implementation
+
+The site is built with HTML, CSS, and vanilla JavaScript. It uses Supabase for supported account and application-data synchronization, with browser-local fallback where available.
+
+Some settings, including folder color preferences and Projects & Portfolio entries, are stored only in the current browser and are not synchronized across devices. The app should not be treated as a system of record for information that has not been backed up.
 
 ## Repository structure
 
-The application is intentionally dependency-free and kept in the existing files:
+| Path | Purpose |
+| --- | --- |
+| `index.html` | Main application layout and dialogs |
+| `styles.css` | Interface styles and responsive behavior |
+| `app.js` | Application state, interactions, and synchronization |
+| `analytics/` | Product analytics dashboard |
+| `case-study/index.html` | Product case study |
+| `CNAME` | Custom-domain configuration |
+| `.nojekyll` | GitHub Pages hosting configuration |
 
-- `index.html` — screens and dialogs
-- `styles.css` — visual styles and responsive rules
-- `app.js` — interactions, persistence, and existing Supabase integration
-- `case-study/index.html` — existing case-study page
+The project has no package installation or build step. To run the static frontend locally, serve the repository root with `python3 -m http.server 8000`. Connected-account functionality depends on the configured backend.
 
-No new build pipeline, duplicate prototype files, or libraries were added for the redesign.
+---
 
-## Next iterations
-
-Refine the detailed job screen against the existing UI, then decide whether portfolio projects and folder preferences should be synced across devices.
+*Independent product project. Features and data availability can vary between signed-in and browser-local experiences.*
